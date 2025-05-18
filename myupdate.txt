@@ -1,0 +1,69 @@
+  //myprompts
+
+1-as whe have created the some of the app now we want more functionality such as an authorize user came create it store  after creating the store he only perform crud operation in his store not other user can do  after creating store he has option to uplaod banner , product , 3dvideos ,  he can update them delte them add product , see orders , the other authrize user only buy from them they can not perform crud operation in other persons app (so how  can we do this can we give another access token to the user who create sote or there is other production readey why to use it or can prson use it pervis token as accestoken in his store so what is the sanario and how we do this)
+
+
+
+  
+  
+  //working on in app store
+  //working on store owner uploads like product and banner
+  //pages in store
+    /home page
+    /product page
+    /cart page
+    /order
+    /order sucessful back to store home
+    /order cancel back to home
+
+
+    recent update
+    notifications
+    kafka
+    redis
+    order
+    store connection
+    options
+    account settings
+    profile update
+    nearby
+    suggestion(on the basis of person search)
+    save the saerch
+
+
+//search button to serach product by its name
+//working on an authorize user can make order
+//working on connected to store 
+//connected store user add product to cart and see them later
+//connected user can see his previous order
+//connected user can get updates from the stor like discount and other
+    //working on in app store premium feature
+
+
+    // collabe with
+// clobber (famous)
+    
+    //next updates
+    //payment gateways(products uplad limit, reviews section, account section, Dashboard section, banner section, trending,top search,verifation tick)
+    //push notifications
+    //in-search-bar-drop-downs
+    //givaaways
+    //innovation
+    //colaburation
+    //discounts
+    //brands
+    //bussinesses
+    //challenges
+    //events
+    //trending
+    //latest
+    //populars
+    //offers
+    //new
+    //old
+    //wintage
+    //uniqueness
+
+
+
+    //next update create a store webdite with admin dashborad and proive hosting to(optional)

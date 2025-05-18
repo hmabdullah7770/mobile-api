@@ -1,0 +1,6 @@
+never use this type of middleware  
+
+router.use('/:storeId', verifyStoreOwner);
+
+i use this in one file causes appiing to all the routes file beacause they all have ('/:storeId') in their route so apply middleware seperately to every route
+if it not requried for all

@@ -1,0 +1,11 @@
+//test the add banner with different user token
+//test the update banner with differnt user token
+//test the delete banner with differnt user token
+
+//check authorize user in carousel
+//code in carousel but commented in banner
+
+//change the routes name in store
+//in carousel why the storeId not send in body
+//change carousel model name to store_acrousel
+//check the verifystoreowner at fro storebanner in routes
