@@ -443,7 +443,7 @@ export const refreshToken = asyncHandler(async (req, res)=>{
   //send the new access token and refresh token to the user
   //send the cookies to the user
   //return the response
-try{
+// try{
   const incommingrefreshToken = req.cookies?.refreshToken || req.headers.authorization?.replace('Bearer ', '')
 
   if(!incommingrefreshToken ){
@@ -488,13 +488,14 @@ try{
   .cookie("refreshToken",refreshToken,options)
   .json(new ApiResponse(200,{accessToken,refreshToken},"Token refreshed successfully"))
 }
-catch(error){
+// catch(error){
 
-  new ApiError(500, 'error in freresh  token',error)
+//   new ApiError(500, 'error in freresh  token',error)
 
-}
+// }
 
-})
+// }
+)
 
 
 export const forgetPassword = asyncHandler(async(req,res)=>{
