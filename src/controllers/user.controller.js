@@ -721,12 +721,13 @@ export const getuser = asyncHandler(async(req,res)=>{
 
   //get the user from the database
   
-  const user = User.findById(req.userVerfied._id).select("-password -refreshtoken")
+  const user = await User.findById(req.userVerfied._id).select("-password -refreshToken -otp")
 
   if(!user){
     throw new ApiError(404,"User not found")
 
   }
+
 
   return res.status(200).json(new ApiResponse(200,user,"User found successfully"))
 })
