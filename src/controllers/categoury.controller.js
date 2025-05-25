@@ -1,10 +1,10 @@
 
-import asyncHandler from '../utils/asyncHandler.js';
+import {asyncHandler} from '../utils/asyncHandler.js';
 import { ApiError } from "../utils/ApiErrors.js";
 import Card from "../models/card.model.js";
 import Categoury from "../models/categoury.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import { User } from '../models/user.model.js';
 
 
 // getcatagoury
@@ -32,7 +32,7 @@ export const getCatagoury = asyncHandler(async (req, res) => {
   
      const allcards= await Card.find()
 
-      res.status(200).json(new ApiResponse(201,"All Categoury fetched successfully", allcards));
+     return res.status(200).json(new ApiResponse(201,"All Categoury fetched successfully", allcards));
 
     }
 
@@ -40,7 +40,7 @@ export const getCatagoury = asyncHandler(async (req, res) => {
 
 
 
-    const existingCategoury = await Card.findOne({ categoury });
+    const existingCategoury = await Card.find({ category:categoury });
 
 
     if (!existingCategoury) {
@@ -48,7 +48,7 @@ export const getCatagoury = asyncHandler(async (req, res) => {
     }
 
 
-    res.status(200).json(new ApiResponse(201,"Categoury fetched successfully", existingCategoury));
+   return res.status(200).json(new ApiResponse(201,"Categoury fetched successfully", existingCategoury));
 
 })
   
@@ -68,7 +68,7 @@ export const getAllCategouryName = asyncHandler(async (req, res) => {
 
     
 
-  const {adminpassword} = req.body()
+  const {adminpassword} = req.body
 
    if(!adminpassword){
       throw new ApiError(400,"cate code is required")
@@ -80,7 +80,7 @@ export const getAllCategouryName = asyncHandler(async (req, res) => {
 
     const allCategoury = await Categoury.find();
 
-    res.status(200).json(new ApiResponse(201,"Categoury fetched successfully", allCategoury));
+  return  res.status(200).json(new ApiResponse(201,"Categoury fetched successfully", allCategoury));
 
 
 })
@@ -105,15 +105,15 @@ if(adminpassword!=="(Bunny)tota#34#"){
     }
 
   
-    const existingCategoury = await Categoury.findOne({ categouryname  });
+    const existingCategoury = await Categoury.findOne({ categouryname:categouryname  });
   
     if (existingCategoury) {
       throw new ApiError(401,"Categoury already exists");
     }
   
-    const newCategoury = await Categoury.create({ categoury });
+    const newCategoury = await Categoury.create({ categouryname:categouryname });
   
-    res.status(200).json(new ApiResponse(201,"Categoury added successfully", newCategoury));
+  return  res.status(200).json(new ApiResponse(201,"Categoury added successfully", newCategoury));
   });
 
 
@@ -145,7 +145,7 @@ export const deleteCategoury = asyncHandler(async (req, res) => {
   
     await Categoury.findByIdAndDelete(existingCategoury._id);
   
-    res.status(200).json(new ApiResponse(201,"Categoury deleted successfully"));
+   return res.status(200).json(new ApiResponse(201,"Categoury deleted successfully"));
   });
 
 

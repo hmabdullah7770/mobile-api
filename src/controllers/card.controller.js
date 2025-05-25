@@ -7,6 +7,7 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadResult} from "../utils/Claudnary.js"
 import {ContentRegistry} from "../models/contentRegistry.model.js"
 import { processSocialLinks } from "../utils/socialLinks.js"
+import  Categoury from "../models/categoury.model.js"
 
 //this like an instagram or facebook post (i.e person post the the thir post other can see only and the person who create that post belongs to that person and he can only update and delete their post )
 
@@ -196,6 +197,14 @@ const publishCard = asyncHandler(async (req, res) => {
     if ( !category) {
         throw new ApiError(400, "Category is required");
     }
+
+
+    const categoryExists = await Categoury.findOne({categouryname:category});
+    if (!categoryExists)
+    {  
+        await Categoury.create({categouryname:category});
+}
+  
 
     const user = await User.findById(req.userVerfied._id);
     if (!user) throw new ApiError(404, "User not found");
