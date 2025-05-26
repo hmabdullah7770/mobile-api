@@ -11,7 +11,7 @@ import { User } from '../models/user.model.js';
 
 export const getCatagoury = asyncHandler(async (req, res) => {
 
-   const {categoury,adminpassword} = req.body
+   const {categoury,adminpassword} = req.query
 
    if(!adminpassword){
       throw new ApiError(400,"cate code is required")
@@ -68,7 +68,7 @@ export const getAllCategouryName = asyncHandler(async (req, res) => {
 
     
 
-  const {adminpassword} = req.body
+  const {adminpassword} = req.query
 
    if(!adminpassword){
       throw new ApiError(400,"cate code is required")
