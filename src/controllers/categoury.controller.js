@@ -18,13 +18,13 @@ export const getCatagoury = asyncHandler(async (req, res) => {
     }
 
   if (adminpassword!=="(Bunny)tota#34#") {
-    throw new ApiError(401,"you dont access the categoury ");
+    throw new ApiError(403,"you dont access the categoury ");
   }
 
    if (!categoury) {
 
     
-        throw new ApiError(401,"Categoury name is required");
+        throw new ApiError(402,"Categoury name is required");
    }
 
    
