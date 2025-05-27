@@ -9,50 +9,147 @@ import { User } from '../models/user.model.js';
 
 // getcatagoury
 
-export const getCatagoury = asyncHandler(async (req, res) => {
+// export const getCatagoury = asyncHandler(async (req, res) => {
 
-   const {categoury,adminpassword} = req.query
+//    const {categoury,adminpassword} = req.query
+
+//    if(!adminpassword){
+//       throw new ApiError(400,"cate code is required")
+//     }
+
+//   if (adminpassword!=="(Bunny)tota#34#") {
+//     throw new ApiError(403,"you dont access the categoury ");
+//   }
+
+//    if (!categoury) {
+
+    
+//         throw new ApiError(402,"Categoury name is required");
+//    }
+
+   
+//     if(categoury ==='All'){
+  
+//      const allcards= await Card.find()
+
+//      return res.status(200).json(new ApiResponse(201,"All Categoury fetched successfully", allcards));
+
+//     }
+
+
+
+
+
+//     const existingCategoury = await Card.find({ category:categoury });
+
+
+//     if (!existingCategoury) {
+//         throw new ApiError(404,"Categoury not found");
+//     }
+
+
+//    return res.status(200).json(new ApiResponse(201,"Categoury fetched successfully", existingCategoury));
+
+// })
+  
+    export const getCatagoury = asyncHandler(async (req, res) => {
+   const {categoury, adminpassword} = req.query
 
    if(!adminpassword){
-      throw new ApiError(400,"cate code is required")
+      throw new ApiError(400, "cate code is required")
     }
 
-  if (adminpassword!=="(Bunny)tota#34#") {
-    throw new ApiError(403,"you dont access the categoury ");
+  if (adminpassword !== "(Bunny)tota#34#") {
+    throw new ApiError(403, "you dont access the categoury")
   }
 
    if (!categoury) {
+        throw new ApiError(402, "Categoury name is required")
+   }
+   
+   if(categoury === 'All'){
+     // Use aggregation for All cards to include owner details
+     const allcards = await Card.aggregate([
+       {
+         $lookup: {
+           from: "users", // The users collection name
+           localField: "owner",
+           foreignField: "_id",
+           as: "ownerDetails",
+           pipeline: [
+             {
+               $project: {
+                 username: 1,
+                 email: 1,
+                 avatar: 1,
+                 _id: 1
+               }
+             }
+           ]
+         }
+       },
+       {
+         $addFields: {
+           owner: { $arrayElemAt: ["$ownerDetails", 0] }
+         }
+       },
+       {
+         $project: {
+           ownerDetails: 0 // Remove the array, keeping only the single owner object
+         }
+       }
+     ])
 
-    
-        throw new ApiError(402,"Categoury name is required");
+     return res.status(200).json(
+       new ApiResponse(201, "All Categoury fetched successfully", allcards)
+     )
    }
 
-   
-    if(categoury ==='All'){
-  
-     const allcards= await Card.find()
+   // For specific category
+   const existingCategoury = await Card.aggregate([
+     {
+       $match: { 
+         category: categoury 
+       }
+     },
+     {
+       $lookup: {
+         from: "users",
+         localField: "owner",
+         foreignField: "_id",
+         as: "ownerDetails",
+         pipeline: [
+           {
+             $project: {
+               fullName: 1,
+               email: 1,
+               avatar: 1,
+               _id: 1
+             }
+           }
+         ]
+       }
+     },
+     {
+       $addFields: {
+         owner: { $arrayElemAt: ["$ownerDetails", 0] }
+       }
+     },
+     {
+       $project: {
+         ownerDetails: 0
+       }
+     }
+   ])
 
-     return res.status(200).json(new ApiResponse(201,"All Categoury fetched successfully", allcards));
+   if (!existingCategoury.length) {
+     throw new ApiError(404, "Categoury not found")
+   }
 
-    }
-
-
-
-
-
-    const existingCategoury = await Card.find({ category:categoury });
-
-
-    if (!existingCategoury) {
-        throw new ApiError(404,"Categoury not found");
-    }
-
-
-   return res.status(200).json(new ApiResponse(201,"Categoury fetched successfully", existingCategoury));
-
+   return res.status(200).json(
+     new ApiResponse(201, "Categoury fetched successfully", existingCategoury)
+   )
 })
-  
-    
   
 
 
