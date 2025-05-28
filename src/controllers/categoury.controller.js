@@ -50,8 +50,10 @@ import { User } from '../models/user.model.js';
 //    return res.status(200).json(new ApiResponse(201,"Categoury fetched successfully", existingCategoury));
 
 // })
+
+
   
-    export const getCatagoury = asyncHandler(async (req, res) => {
+export const getCatagoury = asyncHandler(async (req, res) => {
    const {categoury, adminpassword} = req.query
 
    if(!adminpassword){
@@ -159,6 +161,111 @@ import { User } from '../models/user.model.js';
 
 
 
+
+// export const getCatagoury = asyncHandler(async (req, res) => {
+//    const {categoury, adminpassword, page = 1, limit = 10} = req.query
+//    const skip = (page - 1) * limit
+
+//    if(!adminpassword){
+//       throw new ApiError(400, "cate code is required")
+//    }
+
+//    if (adminpassword !== "(Bunny)tota#34#") {
+//       throw new ApiError(403, "you dont access the categoury")
+//    }
+
+//    if (!categoury) {
+//       throw new ApiError(402, "Categoury name is required")
+//    }
+   
+//    const baseAggregation = [
+//      {
+//        $lookup: {
+//          from: "users",
+//          localField: "owner",
+//          foreignField: "_id",
+//          as: "ownerDetails",
+//          pipeline: [
+//            {
+//              $project: {
+//                username: 1,
+//                email: 1,
+//                avatar: 1,
+//                _id: 1
+//              }
+//            }
+//          ]
+//        }
+//      },
+//      {
+//        $addFields: {
+//          owner: { $arrayElemAt: ["$ownerDetails", 0] }
+//        }
+//      },
+//      {
+//        $project: {
+//          ownerDetails: 0,
+//          // Specify only needed fields
+//          title: 1,
+//          description: 1,
+//          category: 1,
+//          owner: 1,
+//          // Add other essential fields you need
+//        }
+//      }
+//    ]
+
+//    if(categoury === 'All'){
+//      // Get total count for pagination
+//      const totalCount = await Card.countDocuments()
+
+//      const allcards = await Card.aggregate([
+//        ...baseAggregation,
+//        { $skip: skip },
+//        { $limit: parseInt(limit) }
+//      ])
+
+//      return res.status(200).json(
+//        new ApiResponse(201, "All Categoury fetched successfully", {
+//          cards: allcards,
+//          pagination: {
+//            currentPage: parseInt(page),
+//            totalPages: Math.ceil(totalCount / limit),
+//            totalItems: totalCount,
+//            itemsPerPage: parseInt(limit)
+//          }
+//        })
+//      )
+//    }
+
+//    // For specific category
+//    const totalCategoryCount = await Card.countDocuments({ category: categoury })
+
+//    const existingCategoury = await Card.aggregate([
+//      {
+//        $match: { category: categoury }
+//      },
+//      ...baseAggregation,
+//      { $skip: skip },
+//      { $limit: parseInt(limit) }
+//    ])
+
+//    if (!existingCategoury.length) {
+//      throw new ApiError(404, "Categoury not found")
+//    }
+
+//    return res.status(200).json(
+//      new ApiResponse(201, "Categoury fetched successfully", {
+//        cards: existingCategoury,
+//        pagination: {
+//          currentPage: parseInt(page),
+//          totalPages: Math.ceil(totalCategoryCount / limit),
+//          totalItems: totalCategoryCount,
+//          itemsPerPage: parseInt(limit)
+//        }
+//      })
+//    )
+// })
 
 
 
