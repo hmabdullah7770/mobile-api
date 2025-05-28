@@ -1,4 +1,3 @@
-
 import {asyncHandler} from '../utils/asyncHandler.js';
 import { ApiError } from "../utils/ApiErrors.js";
 import Card from "../models/card.model.js";
@@ -97,6 +96,9 @@ import { User } from '../models/user.model.js';
          $project: {
            ownerDetails: 0 // Remove the array, keeping only the single owner object
          }
+       },
+       {
+         $sort: { createdAt: -1 } // Sort by createdAt in descending order
        }
      ])
 
@@ -139,6 +141,9 @@ import { User } from '../models/user.model.js';
        $project: {
          ownerDetails: 0
        }
+     },
+     {
+       $sort: { createdAt: -1 } // Sort by createdAt in descending order
      }
    ])
 
