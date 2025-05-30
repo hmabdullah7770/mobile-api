@@ -244,6 +244,12 @@ const bannerSchema = new Schema({
     // //     type: Number,
     // //     default: 0
     // // }
+,createdAt: {
+        type: Date,
+        default: Date.now,
+        expires: 86400 // 24 hours in seconds
+    }
+
 }, { timestamps: true })
 
 
@@ -271,6 +277,9 @@ bannerSchema.index({ category: 1 });
 // cardSchema.index({ category: 1 });
 // bannerSchema.index({ averageRating: -1 });
 // bannerSchema.index({ totalViews: -1 });
+
+bannerSchema.index({ "createdAt": 1 }, { expireAfterSeconds: 86400 });
+
 bannerSchema.index({ isPublished: 1 });
 
 export default mongoose.model("Banner", bannerSchema)
