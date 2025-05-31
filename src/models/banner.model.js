@@ -19,13 +19,13 @@ const bannerSchema = new Schema({
     owner:{
       type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true
+    
     }
      ,
     store:{
        type: mongoose.Schema.Types.ObjectId,
          ref: "CreateStore",
-         required: true
+        
 
     }
     
@@ -247,7 +247,7 @@ const bannerSchema = new Schema({
 ,createdAt: {
         type: Date,
         default: Date.now,
-        expires: 86400 // 24 hours in seconds
+   index: { expires: 86400 } // Define TTL index here instead of using schema.index()
     }
 
 }, { timestamps: true })
@@ -278,7 +278,7 @@ bannerSchema.index({ category: 1 });
 // bannerSchema.index({ averageRating: -1 });
 // bannerSchema.index({ totalViews: -1 });
 
-bannerSchema.index({ "createdAt": 1 }, { expireAfterSeconds: 86400 });
+// bannerSchema.index({ "createdAt": 1 }, { expireAfterSeconds: 86400 });
 
 bannerSchema.index({ isPublished: 1 });
 

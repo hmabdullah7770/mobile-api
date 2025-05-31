@@ -16,7 +16,7 @@
 // from database check the avalible slot and send to user.
 // catagoury,image,smallheading,bigheading,
 
-import { Banner } from "../models/banner.model.js";
+import  Banner  from "../models/banner.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiErrors.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -26,52 +26,46 @@ import { uploadResult } from "../utils/Claudnary.js";
 
 
 
-
-export const createbanner= asyncHandler(async (req, res) => {
-
+export const createbanner = asyncHandler(async (req, res) => {
     const { 
-     
-         bannerbutton,
-    }   = req.body;
+        bannerbutton,
+        store // Add store ID to request body
+    } = req.body;
 
+    // Validate required fields
+    if(!bannerbutton) {
+        throw new ApiError(400, "Banner button is required");
+    }
 
-  if(!bannerbutton){
-    throw new ApiError(400, "bannerbutton is required");
-  }
+    if (!req.files?.bannerImage?.[0]) {
+        throw new ApiError(400, "Banner image is required");
+    }
 
-  if (!req.files || !req.files.bannerImage || !req.files.bannerImage[0]) {
-      throw new ApiError(400, "Avatar is required");
-  }
-  
-  
-   
+    // Upload image to Cloudinary
+    const bannerimgLocalpath = req.files.bannerImage[0].path;
+    const bannerImage = await uploadResult(bannerimgLocalpath);
     
-     const bannerimgLocalpath = req.files.bannerImage[0].path; //local file path for multer
-     const bannerImage = await uploadResult(bannerimgLocalpath);
-     if (!bannerImage){
-      throw new ApiError(400,"Avatar is required")
+    if (!bannerImage?.url) {
+        throw new ApiError(400, "Error while uploading banner image");
     }
-  
-    if(!bannerImage.url){
-      throw new ApiError('404', "Avatar url not found")
-    }
-  
 
+    // Get user from middleware
     const user = await User.findById(req.userVerfied._id);
     if (!user) {
         throw new ApiError(404, "User not found");
     }
 
+   
 
-    // Create banner with expiry time 
-     const banner = await Banner.create({
+    // Create banner with correct fields
+    const banner = await Banner.create({
         bannerbutton,
-        bannerImage,
-        user,
-        createdAt: new Date() // Explicitly set creation time
+        bannerImage: bannerImage.url, // Only store the URL
+        owner: user._id, // Set owner ID
+        store, // Set store ID
+        createdAt: new Date()
     });
 
-    // Calculate expiry time for response
     const expiryTime = new Date(banner.createdAt.getTime() + 24*60*60*1000);
 
     return res.status(201).json(
@@ -87,6 +81,7 @@ export const createbanner= asyncHandler(async (req, res) => {
     );
 });
 
+
 //     const banner = await Banner.create({
 //         bannerbutton,
 //         bannerImage,
@@ -98,15 +93,76 @@ export const createbanner= asyncHandler(async (req, res) => {
 // })
 
 
-export const getBanner = asyncHandler(async (req, res) => {
+// export const getBanner = asyncHandler(async (req, res) => {
 
+//     const {adminpassword} = req.query
+
+//     if (adminpassword !== "(Bunny)tota#34#") {
+//         throw new ApiError(403, "you dont access the banner");
+        
+//     } 
+//     const banners = await Banner.find().populate("user");
+    
+//     const bannersWithTimeRemaining = banners.map(banner => {
+//         const now = new Date();
+//         const expiryTime = new Date(banner.createdAt.getTime() + 24*60*60*1000);
+//         const remainingMs = expiryTime - now;
+//         const remainingHours = Math.max(0, Math.floor(remainingMs / (1000 * 60 * 60)));
+//         const remainingMinutes = Math.max(0, Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60)));
+
+//         return {
+//             ...banner.toObject(),
+//             timeRemaining: `${remainingHours}h ${remainingMinutes}m`,
+//             expiryTime
+//         };
+//     });
+
+//     return res.status(200).json(
+//         new ApiResponse(
+//             200, 
+//             bannersWithTimeRemaining, 
+//             "Banners fetched successfully"
+//         )
+
+
+//           );
+// });
+
+export const getBanner = asyncHandler(async (req, res) => {
     const {adminpassword} = req.query
 
     if (adminpassword !== "(Bunny)tota#34#") {
         throw new ApiError(403, "you dont access the banner");
-        
-    } 
-    const banners = await Banner.find().populate("user");
+    }
+
+    const banners = await Banner.aggregate([
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        {
+            $unwind: "$ownerDetails"
+        },
+        {
+            $project: {
+                bannerImage: 1,
+                bannerbutton: 1,
+                store: 1,
+                createdAt: 1,
+                ownerDetails: {
+                    username: 1,
+                    fullName: 1,
+                    email: 1,
+                    avatar: 1
+                    // Add any other user fields you want to include
+                }
+            }
+        }
+    ]);
     
     const bannersWithTimeRemaining = banners.map(banner => {
         const now = new Date();
@@ -116,7 +172,7 @@ export const getBanner = asyncHandler(async (req, res) => {
         const remainingMinutes = Math.max(0, Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60)));
 
         return {
-            ...banner.toObject(),
+            ...banner,
             timeRemaining: `${remainingHours}h ${remainingMinutes}m`,
             expiryTime
         };
@@ -128,15 +184,13 @@ export const getBanner = asyncHandler(async (req, res) => {
             bannersWithTimeRemaining, 
             "Banners fetched successfully"
         )
-
-
-          );
+    );
 });
 
 
 
 export const deleteBanner = asyncHandler(async (req, res) => {
-    const { bannerId } = req.params;
+    const { bannerId } = req.query;
     const banner = await Banner.findByIdAndDelete(bannerId);
     if (!banner) {
         throw new ApiError(404, "Banner not found");

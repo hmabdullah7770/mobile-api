@@ -4,6 +4,7 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 import CreateStore from "../../models/store/store.createstore.model.js";
 import { uploadResult } from '../../utils/Claudnary.js'
 import mongoose from 'mongoose';
+import { User } from "../../models/user.model.js";
 
 // Create a new store
 export const createStore = asyncHandler(async (req, res) => {
@@ -88,6 +89,22 @@ if(!storeLogo){
         targetUrl,
         isPublished
     });
+
+ // Update user model with store information
+    await User.findByIdAndUpdate(
+        req.userVerfied._id,
+        {
+            $push: {
+                stores: {
+                    storeId: store._id,
+                    storeName: store.storeName,
+                    storeLogo: store.storeLogo
+                }
+            }
+        },
+        { new: true }
+    );
+
 
     return res.status(201).json(
         new ApiResponse(201, store, "Store created successfully")

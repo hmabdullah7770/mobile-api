@@ -1,41 +1,41 @@
 import express from "express";
 import {
-    createBanner,
-    getAvailableSlots,
-    getAllBanners,
-    deleteBanner,
-    getMonthlyBannerCount
+     createbanner,
+     getBanner ,
+ deleteBanner,
+   
 } from "../controllers/banner.controller.js";
 import VerifyJwt from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
+
+
+// // Apply JWT verification to all routes
+// router.use(VerifyJwt);
 const router = express.Router();
-
-// Apply JWT verification to all routes
-router.use(VerifyJwt);
-
 // Create banner route
 router.post(
-    "/",
+    "/createbanner",
     upload.fields([
         {
-            name: "backgroundImage",
+            name: "bannerImage",
             maxCount: 1
         }
     ]),
-    createBanner
+    VerifyJwt,
+   createbanner
 );
 
 // Get available slots route
-router.get("/slots", getAvailableSlots);
+router.get("/getbanner",  getBanner);
 
-// Get all banners route
-router.get("/", getAllBanners);
+// // Get all banners route
+// router.get("/", getAllBanners);
 
 // Delete banner route
-router.delete("/:bannerId", deleteBanner);
+router.delete("/deletebanner",VerifyJwt ,deleteBanner);
 
-// Get monthly banner count route
-router.get("/monthly-count", getMonthlyBannerCount);
+// // Get monthly banner count route
+// router.get("/monthly-count", getMonthlyBannerCount);
 
 export default router;

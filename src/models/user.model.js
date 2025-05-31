@@ -98,8 +98,21 @@ const userSchema = new Schema({
 
     productlink:{
         type:String,
-    }
+    },
 
+      
+    stores: [{
+        storeId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "CreateStore"
+        },
+        storeName: {
+            type: String
+        },
+        storeLogo: {
+            type: String
+        }
+    }],
 
     //likevideo:
     //commentvideo:

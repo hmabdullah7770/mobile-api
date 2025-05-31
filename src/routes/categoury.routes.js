@@ -1,5 +1,6 @@
 import {
     getCatagoury,
+    getCatagourycount,
     getAllCategouryName,
     addCategoury,
     deleteCategoury
@@ -11,6 +12,7 @@ import express from 'express';
 const router = express.Router();
 
 router.route('/getcategoury').get(getCatagoury);
+router.route('/getcategourycount').get(getCatagourycount);
 router.route('/allcategoury').get(getAllCategouryName);
 router.route('/addcategoury').post(addCategoury);
 router.route('/deletecategoury').delete(deleteCategoury);

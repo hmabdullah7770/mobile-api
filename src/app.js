@@ -42,6 +42,8 @@ import videoRouter from "./routes/video.routes.js"
 import commentRouter from "./routes/comment.routes.js"
 import styleRouter from "./routes/style.routes.js"
 import categouryRouter from "./routes/categoury.routes.js"
+
+import bannerRoutes  from "./routes/banner.routes.js"
 // import likeRouter from "./routes/like.routes.js"
 // import playlistRouter from "./routes/playlist.routes.js"
 // import dashboardRouter from "./routes/dashboard.routes.js"
@@ -59,6 +61,7 @@ app.use("/api/v1/comments", commentRouter)
 app.use("/api/v1/ratings", ratingRoutes)
 app.use("/api/v1/styles", styleRouter)
 app.use("/api/v1/categouries", categouryRouter)
+app.use("/api/v1/banner", bannerRoutes); 
 // app.use("/api/v1/likes", likeRouter)
 // app.use("/api/v1/playlist", playlistRouter)
 // app.use("/api/v1/dashboard", dashboardRouter)
@@ -76,14 +79,14 @@ app.use("/api/v1/categouries", categouryRouter)
 //create store routes
 
 import storeRoutes from './routes/store/store.createstore.routes.js';
-import bannerRoutes from './routes/store/store.banner.routes.js';
+import storebannerRoutes from './routes/store/store.banner.routes.js';
 import productRoutes from './routes/store/store.product.routes.js';
 import threeDVideoRoutes from './routes/store/store.3dvideo.routes.js';
 import carouselRoutes from './routes/store/store.carousel.routes.js'
 import orderRoutes from './routes/store/store.order.routes.js'
 
 app.use('/api/v1/stores', storeRoutes);
-app.use('/api/v1/stores', bannerRoutes);
+app.use('/api/v1/stores', storebannerRoutes);
 app.use('/api/v1/stores', productRoutes);
 app.use('/api/v1/stores', threeDVideoRoutes);
 app.use('/api/v1/stores', carouselRoutes)
