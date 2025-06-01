@@ -313,13 +313,14 @@ export const getCatagoury = asyncHandler(async (req, res) => {
       { $unwind: "$owner" },
       {
         $project: {
-          title: 1,
-          description: 1,
-          category: 1,
-          owner: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          thumbnail: 1
+            ownerDetails: 0 // Remove the array, keeping only the single owner object
+          // title: 1,
+          // description: 1,
+          // category: 1,
+          // owner: 1,
+          // createdAt: 1,
+          // updatedAt: 1,
+          // thumbnail: 1
         }
       }
     ];
@@ -360,7 +361,7 @@ export const getCatagoury = asyncHandler(async (req, res) => {
 
 // simple code 
 
-// export const getCatagoury = asyncHandler(async (req, res) => {
+ // export const getCatagoury = asyncHandler(async (req, res) => {
 //    const {categoury, adminpassword} = req.query
 
 //    if(!adminpassword){
