@@ -8,117 +8,118 @@ import { User } from '../models/user.model.js';
 // optimized code
 // 🚀 SUPER OPTIMIZED VERSION - Even faster counting!
 //  (with total count)
-export const getCatagourycount = asyncHandler(async (req, res) => {
-  const { categoury, adminpassword, page = 1, limit = 10 } = req.query;
-  const skip = (parseInt(page) - 1) * parseInt(limit);
-  const parsedLimit = parseInt(limit);
+// export const getCatagourycount = asyncHandler(async (req, res) => {
+//   const { categoury, adminpassword, page = 1, limit = 10 } = req.query;
+//   const skip = (parseInt(page) - 1) * parseInt(limit);
+//   const parsedLimit = parseInt(limit);
 
-  // Input validation
-  if (!adminpassword) {
-    throw new ApiError(400, "Admin password is required");
-  }
+//   // Input validation
+//   if (!adminpassword) {
+//     throw new ApiError(400, "Admin password is required");
+//   }
 
-  if (adminpassword !== "(Bunny)tota#34#") {
-    throw new ApiError(403, "Access denied");
-  }
+//   if (adminpassword !== "(Bunny)tota#34#") {
+//     throw new ApiError(403, "Access denied");
+//   }
 
-  if (!categoury) {
-    throw new ApiError(400, "Category name is required");
-  }
+//   if (!categoury) {
+//     throw new ApiError(400, "Category name is required");
+//   }
 
-  try {
-    // 🎯 SOLUTION: Build match condition once
-    const matchCondition = {};
-    if (categoury !== 'All') {
-      matchCondition.category = categoury;
-    }
-    // Add other filters if needed
-    // matchCondition.isPublished = true;
+//   try {
+//     // 🎯 SOLUTION: Build match condition once
+//     const matchCondition = {};
+//     if (categoury !== 'All') {
+//       matchCondition.category = categoury;
+//     }
+//     // Add other filters if needed
+//     // matchCondition.isPublished = true;
 
-    // 🚀 SUPER OPTIMIZED: Single pipeline with smart counting
-    const pipeline = [
-      // ✅ EARLY FILTERING (uses index)
-      ...(Object.keys(matchCondition).length > 0 ? [{ $match: matchCondition }] : []),
+//     // 🚀 SUPER OPTIMIZED: Single pipeline with smart counting
+//     const pipeline = [
+//       // ✅ EARLY FILTERING (uses index)
+//       ...(Object.keys(matchCondition).length > 0 ? [{ $match: matchCondition }] : []),
       
-      // ✅ EARLY SORTING (uses index)
-      { $sort: { createdAt: -1 } },
+//       // ✅ EARLY SORTING (uses index)
+//       { $sort: { createdAt: -1 } },
       
-      // 🔥 SMART FACET - More efficient counting
-      {
-        $facet: {
-          // Get paginated data with expensive operations
-          data: [
-            { $skip: skip },
-            { $limit: parsedLimit },
-            // Expensive operations ONLY on limited data
-            {
-              $lookup: {
-                from: "users",
-                localField: "owner",
-                foreignField: "_id",
-                as: "owner",
-                pipeline: [
-                  {
-                    $project: {
-                      username: 1,
-                      email: 1,
-                      avatar: 1,
-                      fullName: 1
-                    }
-                  }
-                ]
-              }
-            },
-            { $unwind: "$owner" },
-            {
-              $project: {
-                title: 1,
-                description: 1,
-                category: 1,
-                owner: 1,
-                createdAt: 1,
-                updatedAt: 1,
-                thumbnail: 1
-              }
-            }
-          ],
+//       // 🔥 SMART FACET - More efficient counting
+//       {
+//         $facet: {
+//           // Get paginated data with expensive operations
+//           data: [
+//             { $skip: skip },
+//             { $limit: parsedLimit },
+//             // Expensive operations ONLY on limited data
+//             {
+//               $lookup: {
+//                 from: "users",
+//                 localField: "owner",
+//                 foreignField: "_id",
+//                 as: "owner",
+//                 pipeline: [
+//                   {
+//                     $project: {
+//                       username: 1,
+//                       email: 1,
+//                       avatar: 1,
+//                       fullName: 1
+//                     }
+//                   }
+//                 ]
+//               }
+//             },
+//             { $unwind: "$owner" },
+//             {
+//               $project: {
+//                   //  ownerDetails: 0 // Remove the array, keeping only the single owner object
+//                 title: 1,
+//                 description: 1,
+//                 category: 1,
+//                 owner: 1,
+//                 createdAt: 1,
+//                 updatedAt: 1,
+//                 thumbnail: 1
+//               }
+//             }
+//           ],
           
-          // 🔥 OPTIMIZED COUNTING - Only count, no expensive operations
-          totalCount: [
-            { $count: "count" }
-          ]
-        }
-      }
-    ];
+//           // 🔥 OPTIMIZED COUNTING - Only count, no expensive operations
+//           totalCount: [
+//             { $count: "count" }
+//           ]
+//         }
+//       }
+//     ];
 
-    // Execute single optimized query
-    const result = await Card.aggregate(pipeline);
+//     // Execute single optimized query
+//     const result = await Card.aggregate(pipeline);
     
-    const cards = result[0].data;
-    const totalCount = result[0].totalCount[0]?.count || 0;
+//     const cards = result[0].data;
+//     const totalCount = result[0].totalCount[0]?.count || 0;
 
-    if (totalCount === 0 && categoury !== 'All') {
-      throw new ApiError(404, "Category not found");
-    }
+//     if (totalCount === 0 && categoury !== 'All') {
+//       throw new ApiError(404, "Category not found");
+//     }
 
-    return res.status(200).json(
-      new ApiResponse(200, `${categoury === 'All' ? 'All categories' : 'Category'} fetched successfully`, {
-        cards,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(totalCount / parsedLimit),
-          totalItems: totalCount,
-          itemsPerPage: parsedLimit,
-          hasNextPage: skip + parsedLimit < totalCount,
-          hasPrevPage: parseInt(page) > 1
-        }
-      })
-    );
+//     return res.status(200).json(
+//       new ApiResponse(200, `${categoury === 'All' ? 'All categories' : 'Category'} fetched successfully`, {
+//         cards,
+//         pagination: {
+//           currentPage: parseInt(page),
+//           totalPages: Math.ceil(totalCount / parsedLimit),
+//           totalItems: totalCount,
+//           itemsPerPage: parsedLimit,
+//           hasNextPage: skip + parsedLimit < totalCount,
+//           hasPrevPage: parseInt(page) > 1
+//         }
+//       })
+//     );
 
-  } catch (error) {
-    throw new ApiError(500, `Database error: ${error.message}`);
-  }
-});
+//   } catch (error) {
+//     throw new ApiError(500, `Database error: ${error.message}`);
+//   }
+// });
 
 // 🔥 EVEN MORE OPTIMIZED VERSION - If you want to avoid counting altogether
 // (without totalcount)
