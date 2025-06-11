@@ -13,30 +13,30 @@ import { Followlist } from "../models/followlist.model.js";
 
 //mogration code for store
 
-// const runMigrations = async () => {
-//     try {
-//         // Check if migration is needed
-//         const usersWithoutStores = await User.countDocuments({ stores: { $exists: false } });
+const runMigrations = async () => {
+    try {
+        // Check if migration is needed
+        const usersWithoutStores = await User.countDocuments({ stores: { $exists: false } });
         
-//         if (usersWithoutStores > 0) {
-//             console.log(`Found ${usersWithoutStores} users without stores field. Running migration...`);
+        if (usersWithoutStores > 0) {
+            console.log(`Found ${usersWithoutStores} users without stores field. Running migration...`);
             
-//             const result = await User.updateMany(
-//                 { stores: { $exists: false } },
-//                 { $set: { stores: [] } }
-//             );
+            const result = await User.updateMany(
+                { stores: { $exists: false } },
+                { $set: { stores: [] } }
+            );
             
-//             console.log(`Migration completed: Updated ${result.modifiedCount} users`);
-//         } else {
-//             console.log("No migration needed - all users have stores field");
-//         }
-//     } catch (error) {
-//         console.error("Migration failed:", error);
-//     }
-// };
+            console.log(`Migration completed: Updated ${result.modifiedCount} users`);
+        } else {
+            console.log("No migration needed - all users have stores field");
+        }
+    } catch (error) {
+        console.error("Migration failed:", error);
+    }
+};
 
-// // Run migrations on app startup
-// runMigrations();
+// Run migrations on app startup
+runMigrations();
 
 
 const generateAccessTokenAndRefreshToken = async (userId) => {

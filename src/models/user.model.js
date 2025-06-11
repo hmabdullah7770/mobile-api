@@ -120,7 +120,7 @@ const userSchema = new Schema({
         storeLogo: {
             type: String
         }
-        
+        , default:[]
     }],
 
     //likevideo:
