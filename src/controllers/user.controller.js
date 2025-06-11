@@ -7,6 +7,37 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from 'jsonwebtoken'
 import bcrypt from "bcrypt"
 import transporter from "../utils/nodemailer.js"
+import { Followlist } from "../models/followlist.model.js";
+
+
+
+//mogration code for store
+
+// const runMigrations = async () => {
+//     try {
+//         // Check if migration is needed
+//         const usersWithoutStores = await User.countDocuments({ stores: { $exists: false } });
+        
+//         if (usersWithoutStores > 0) {
+//             console.log(`Found ${usersWithoutStores} users without stores field. Running migration...`);
+            
+//             const result = await User.updateMany(
+//                 { stores: { $exists: false } },
+//                 { $set: { stores: [] } }
+//             );
+            
+//             console.log(`Migration completed: Updated ${result.modifiedCount} users`);
+//         } else {
+//             console.log("No migration needed - all users have stores field");
+//         }
+//     } catch (error) {
+//         console.error("Migration failed:", error);
+//     }
+// };
+
+// // Run migrations on app startup
+// runMigrations();
+
 
 const generateAccessTokenAndRefreshToken = async (userId) => {
   const user = await User.findById(userId);
@@ -734,75 +765,158 @@ export const getuser = asyncHandler(async(req,res)=>{
 
 //update user
 
-export const updateuser = asyncHandler(async(req,res)=>{
+// export const updateuser = asyncHandler(async(req,res)=>{
 
-  //get the user from the database
-  //update the user in the database 
-  //return response 
-  const {email,fullName, whatsapp, storeLink, facebook, instagram, productlink } = req.body
+//   //get the user from the database
+//   //update the user in the database 
+//   //return response 
+//   const {email,fullName, whatsapp, storeLink, facebook, instagram, productlink } = req.body
 
-  if(!email || !fullName){
-    throw new ApiError(400,"Email and fullname is required")
+//   if(!email || !fullName){
+//     throw new ApiError(400,"Email and fullname is required")
 
-  }
+//   }
 
-  // Check if at least one social link will be available after update
-  // First get current user data
-  const currentUser = await User.findById(req.userVerfied._id);
+//   // Check if at least one social link will be available after update
+//   // First get current user data
+//   const currentUser = await User.findById(req.userVerfied._id);
   
-  // Determine which social links will be present after update
-  const willHaveWhatsapp = whatsapp !== undefined ? whatsapp : currentUser.whatsapp;
-  const willHaveStoreLink = storeLink !== undefined ? storeLink : currentUser.storeLink;
-  const willHaveFacebook = facebook !== undefined ? facebook : currentUser.facebook;
-  const willHaveInstagram = instagram !== undefined ? instagram : currentUser.instagram;
+//   // Determine which social links will be present after update
+//   const willHaveWhatsapp = whatsapp !== undefined ? whatsapp : currentUser.whatsapp;
+//   const willHaveStoreLink = storeLink !== undefined ? storeLink : currentUser.storeLink;
+//   const willHaveFacebook = facebook !== undefined ? facebook : currentUser.facebook;
+//   const willHaveInstagram = instagram !== undefined ? instagram : currentUser.instagram;
 
-  // Check if at least one social link will be present
-  if (!willHaveWhatsapp && !willHaveStoreLink && !willHaveFacebook && !willHaveInstagram) {
-    throw new ApiError(400, "At least one social link (WhatsApp, storeLink, Facebook, or Instagram) is required");
-  }
+//   // Check if at least one social link will be present
+//   if (!willHaveWhatsapp && !willHaveStoreLink && !willHaveFacebook && !willHaveInstagram) {
+//     throw new ApiError(400, "At least one social link (WhatsApp, storeLink, Facebook, or Instagram) is required");
+//   }
 
-  // Check for duplicate social links if updating any
-  const socialLinksQuery = [];
-  if (whatsapp && whatsapp !== currentUser.whatsapp) socialLinksQuery.push({ whatsapp });
-  if (storeLink && storeLink !== currentUser.storeLink) socialLinksQuery.push({ storeLink });
-  if (facebook && facebook !== currentUser.facebook) socialLinksQuery.push({ facebook });
-  if (instagram && instagram !== currentUser.instagram) socialLinksQuery.push({ instagram });
+//   // Check for duplicate social links if updating any
+//   const socialLinksQuery = [];
+//   if (whatsapp && whatsapp !== currentUser.whatsapp) socialLinksQuery.push({ whatsapp });
+//   if (storeLink && storeLink !== currentUser.storeLink) socialLinksQuery.push({ storeLink });
+//   if (facebook && facebook !== currentUser.facebook) socialLinksQuery.push({ facebook });
+//   if (instagram && instagram !== currentUser.instagram) socialLinksQuery.push({ instagram });
 
-  if (socialLinksQuery.length > 0) {
-    const existingSocialLink = await User.findOne({
-      $or: socialLinksQuery,
-      _id: { $ne: req.userVerfied._id } // Exclude current user
-    });
+//   if (socialLinksQuery.length > 0) {
+//     const existingSocialLink = await User.findOne({
+//       $or: socialLinksQuery,
+//       _id: { $ne: req.userVerfied._id } // Exclude current user
+//     });
 
-    if (existingSocialLink) {
-      throw new ApiError(409, "One of the social links is already in use by another user");
+//     if (existingSocialLink) {
+//       throw new ApiError(409, "One of the social links is already in use by another user");
+//     }
+//   }
+
+//   // Create update object with only provided fields
+//   const updateData = {
+//     email,
+//     fullName
+//   };
+  
+//   if (whatsapp !== undefined) updateData.whatsapp = whatsapp;
+//   if (storeLink !== undefined) updateData.storeLink = storeLink;
+//   if (facebook !== undefined) updateData.facebook = facebook;
+//   if (instagram !== undefined) updateData.instagram = instagram;
+//   if (productlink !== undefined) updateData.productlink = productlink;
+
+//   const user = await User.findByIdAndUpdate(
+//     req.userVerfied._id,
+//     { $set: updateData },
+//     { new: true }
+//   );
+
+//   if (!user) {
+//     throw new ApiError(404, "Verified user not found");
+//   }
+
+//   return res.status(200).json(new ApiResponse(200, user, "User updated successfully"));
+// })
+
+export const updateuser = asyncHandler(async(req, res) => {
+    const { email, fullName, whatsapp, storeLink, facebook, instagram, productlink, bio } = req.body;
+    
+    // Get current user data first
+    const currentUser = await User.findById(req.userVerfied._id);
+    if (!currentUser) {
+        throw new ApiError(404, "User not found");
     }
-  }
+    
+    // Create update object with only provided fields
+    const updateData = {};
+    
+    // Only add fields that are actually being updated
+    if (email !== undefined) updateData.email = email;
+    if (fullName !== undefined) updateData.fullName = fullName;
+    if (bio !== undefined) updateData.bio = bio;
+    if (productlink !== undefined) updateData.productlink = productlink;
+    
+    // Handle social links
+    if (whatsapp !== undefined) updateData.whatsapp = whatsapp;
+    if (storeLink !== undefined) updateData.storeLink = storeLink;
+    if (facebook !== undefined) updateData.facebook = facebook;
+    if (instagram !== undefined) updateData.instagram = instagram;
+    
+    // Validate at least one social link will remain after update
+    const finalWhatsapp = whatsapp !== undefined ? whatsapp : currentUser.whatsapp;
+    const finalStoreLink = storeLink !== undefined ? storeLink : currentUser.storeLink;
+    const finalFacebook = facebook !== undefined ? facebook : currentUser.facebook;
+    const finalInstagram = instagram !== undefined ? instagram : currentUser.instagram;
+    
+    if (!finalWhatsapp && !finalStoreLink && !finalFacebook && !finalInstagram) {
+        throw new ApiError(400, "At least one social link (WhatsApp, storeLink, Facebook, or Instagram) must be provided");
+    }
+    
+    // Check for duplicate social links (only for fields being updated)
+    const uniqueChecks = [];
+    if (whatsapp !== undefined && whatsapp !== currentUser.whatsapp && whatsapp) {
+        uniqueChecks.push({ whatsapp });
+    }
+    if (storeLink !== undefined && storeLink !== currentUser.storeLink && storeLink) {
+        uniqueChecks.push({ storeLink });
+    }
+    if (facebook !== undefined && facebook !== currentUser.facebook && facebook) {
+        uniqueChecks.push({ facebook });
+    }
+    if (instagram !== undefined && instagram !== currentUser.instagram && instagram) {
+        uniqueChecks.push({ instagram });
+    }
+    
+    if (uniqueChecks.length > 0) {
+        const existingUser = await User.findOne({
+            $or: uniqueChecks,
+            _id: { $ne: req.userVerfied._id }
+        });
+        
+        if (existingUser) {
+            throw new ApiError(409, "One of the social links is already in use by another user");
+        }
+    }
+    
+    // If no fields to update, return current user
+    if (Object.keys(updateData).length === 0) {
+        return res.status(200).json(
+            new ApiResponse(200, currentUser, "No changes to update")
+        );
+    }
+    
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+        req.userVerfied._id,
+        { $set: updateData },
+        { 
+            new: true,
+            runValidators: true // This will run your schema validations
+        }
+    ).select("-password -refreshToken"); // Don't return sensitive fields
+    
+    return res.status(200).json(
+        new ApiResponse(200, updatedUser, "User updated successfully")
+    );
+});
 
-  // Create update object with only provided fields
-  const updateData = {
-    email,
-    fullName
-  };
-  
-  if (whatsapp !== undefined) updateData.whatsapp = whatsapp;
-  if (storeLink !== undefined) updateData.storeLink = storeLink;
-  if (facebook !== undefined) updateData.facebook = facebook;
-  if (instagram !== undefined) updateData.instagram = instagram;
-  if (productlink !== undefined) updateData.productlink = productlink;
-
-  const user = await User.findByIdAndUpdate(
-    req.userVerfied._id,
-    { $set: updateData },
-    { new: true }
-  );
-
-  if (!user) {
-    throw new ApiError(404, "Verified user not found");
-  }
-
-  return res.status(200).json(new ApiResponse(200, user, "User updated successfully"));
-})
 
 //change avatar image
 export const changeavatar = asyncHandler(async(req,res)=>{
@@ -960,6 +1074,8 @@ export const changeavatar = asyncHandler(async(req,res)=>{
         followbutton:1,
         coverImage:1,
         avatar:1,
+        bio:1,
+        stores:1,
         createdAt:1,
         updatedAt:1,
        

@@ -59,6 +59,12 @@ const userSchema = new Schema({
         required: true
     },
 
+    // title:{
+    //    type: String,
+    //      default: "No title provided"
+    // },
+ 
+
     coverImage: {
         type: String,  //cloudnary url
 
@@ -102,6 +108,8 @@ const userSchema = new Schema({
 
       
     stores: [{
+            
+
         storeId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "CreateStore"
@@ -112,6 +120,7 @@ const userSchema = new Schema({
         storeLogo: {
             type: String
         }
+        
     }],
 
     //likevideo:
@@ -119,6 +128,8 @@ const userSchema = new Schema({
 }, { timestamps: true })
 
 
+
+//delete user also delete the user all data and also store and store data 
 
 userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) return next()
