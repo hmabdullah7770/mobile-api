@@ -26,17 +26,125 @@ import { uploadResult } from "../utils/Claudnary.js";
 
 
 
-export const createbanner = asyncHandler(async (req, res) => {
-    const { 
+// export const createbanner = asyncHandler(async (req, res) => {
+//     const { 
        
-        store // Add store ID to request body
-    } = req.body;
+//         store // Add store ID to request body
+//     } = req.body;
 
-    // // Validate required fields
-    // if(!bannerbutton) {
-    //     throw new ApiError(400, "Banner button is required");
-    // }
 
+//  // Check total active banners (less than 24 hours old)
+//     const activeBanners = await Banner.countDocuments({
+//         createdAt: { 
+//             $gte: new Date(Date.now() - 24*60*60*1000) 
+//         }
+//     });
+
+//     if (activeBanners >= 5) {
+//         throw new ApiError(
+//             400, 
+//             "Maximum banner limit reached (5). Please try again when existing banners expire."
+//         );
+//     }
+
+
+//     // // Validate required fields
+//     // if(!bannerbutton) {
+//     //     throw new ApiError(400, "Banner button is required");
+//     // }
+
+//     if (!req.files?.bannerImage?.[0]) {
+//         throw new ApiError(400, "Banner image is required");
+//     }
+
+//     // Upload image to Cloudinary
+//     const bannerimgLocalpath = req.files.bannerImage[0].path;
+//     const bannerImage = await uploadResult(bannerimgLocalpath);
+    
+//     if (!bannerImage?.url) {
+//         throw new ApiError(400, "Error while uploading banner image");
+//     }
+
+//     // Get user from middleware
+//     const user = await User.findById(req.userVerfied._id);
+//     if (!user) {
+//         throw new ApiError(404, "User not found");
+//     }
+
+   
+
+//     // Create banner with correct fields
+//     const banner = await Banner.create({
+//         // bannerbutton,
+//         bannerImage: bannerImage.url, // Only store the URL
+//         owner: user._id, // Set owner ID
+//         store, // Set store ID
+//         createdAt: new Date()
+//     });
+
+//     const expiryTime = new Date(banner.createdAt.getTime() + 24*60*60*1000);
+
+//     return res.status(201).json(
+//         new ApiResponse(
+//             201, 
+//             {
+//                 ...banner.toObject(),
+//                 expiryTime,
+//                 timeRemaining: "24 hours"
+//             },
+//             "Banner created successfully"
+//         )
+//     );
+// });
+
+
+
+
+
+export const createbanner = asyncHandler(async (req, res) => {
+    const { store } = req.body;
+
+// Check total active banners (less than 24 hours old)
+    const activeBanners = await Banner.countDocuments({
+        createdAt: { 
+            $gte: new Date(Date.now() - 24*60*60*1000) 
+        }
+    });
+
+    if (activeBanners >= 5) {
+        throw new ApiError(
+            400, 
+            "Maximum banner limit reached (5). Please try again when existing banners expire."
+        );
+    }
+
+
+    // Get user from middleware
+    const user = await User.findById(req.userVerfied._id);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Check if user already has an active banner (created within last 24 hours)
+    const existingBanner = await Banner.findOne({
+        owner: user._id,
+        createdAt: { 
+            $gte: new Date(Date.now() - 24*60*60*1000) 
+        }
+    });
+
+    if (existingBanner) {
+        const timeLeft = new Date(existingBanner.createdAt.getTime() + 24*60*60*1000) - new Date();
+        const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+        const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        
+        throw new ApiError(
+            400, 
+            `You already have an active banner. Please wait ${hoursLeft}h ${minutesLeft}m before creating a new one.`
+        );
+    }
+
+    // Validate banner image
     if (!req.files?.bannerImage?.[0]) {
         throw new ApiError(400, "Banner image is required");
     }
@@ -46,23 +154,14 @@ export const createbanner = asyncHandler(async (req, res) => {
     const bannerImage = await uploadResult(bannerimgLocalpath);
     
     if (!bannerImage?.url) {
-        throw new ApiError(400, "Error while uploading banner image");
+        throw new ApiError(401, "Error while uploading banner image");
     }
-
-    // Get user from middleware
-    const user = await User.findById(req.userVerfied._id);
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
-
-   
 
     // Create banner with correct fields
     const banner = await Banner.create({
-        // bannerbutton,
-        bannerImage: bannerImage.url, // Only store the URL
-        owner: user._id, // Set owner ID
-        store, // Set store ID
+        bannerImage: bannerImage.url,
+        owner: user._id,
+        store,
         createdAt: new Date()
     });
 
@@ -79,18 +178,11 @@ export const createbanner = asyncHandler(async (req, res) => {
             "Banner created successfully"
         )
     );
+
+
 });
 
 
-//     const banner = await Banner.create({
-//         bannerbutton,
-//         bannerImage,
-//         user
-//     });
-//     return res.status(201).json(new ApiResponse(201, banner, "Banner created successfully"));
-
-
-// })
 
 
 // export const getBanner = asyncHandler(async (req, res) => {
@@ -127,6 +219,10 @@ export const createbanner = asyncHandler(async (req, res) => {
 
 //           );
 // });
+
+
+
+
 
 export const getBanner = asyncHandler(async (req, res) => {
     const {adminpassword} = req.query
