@@ -28,14 +28,14 @@ import { uploadResult } from "../utils/Claudnary.js";
 
 export const createbanner = asyncHandler(async (req, res) => {
     const { 
-        bannerbutton,
+       
         store // Add store ID to request body
     } = req.body;
 
-    // Validate required fields
-    if(!bannerbutton) {
-        throw new ApiError(400, "Banner button is required");
-    }
+    // // Validate required fields
+    // if(!bannerbutton) {
+    //     throw new ApiError(400, "Banner button is required");
+    // }
 
     if (!req.files?.bannerImage?.[0]) {
         throw new ApiError(400, "Banner image is required");
@@ -59,7 +59,7 @@ export const createbanner = asyncHandler(async (req, res) => {
 
     // Create banner with correct fields
     const banner = await Banner.create({
-        bannerbutton,
+        // bannerbutton,
         bannerImage: bannerImage.url, // Only store the URL
         owner: user._id, // Set owner ID
         store, // Set store ID

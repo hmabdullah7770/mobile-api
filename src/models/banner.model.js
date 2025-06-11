@@ -10,12 +10,12 @@ const bannerSchema = new Schema({
 
     },
 
-    bannerbutton:{
-      type: String,
-      required: true,
+    // bannerbutton:{
+    //   type: String,
+    //   required: true,
 
-    }
-,
+    // }
+
     owner:{
       type: mongoose.Schema.Types.ObjectId,
         ref: "User",
