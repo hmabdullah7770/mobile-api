@@ -250,6 +250,7 @@ export const getBanner = asyncHandler(async (req, res) => {
                 store: 1,
                 createdAt: 1,
                 ownerDetails: {
+                    _id: 1,
                     username: 1,
                     fullName: 1,
                     email: 1,
