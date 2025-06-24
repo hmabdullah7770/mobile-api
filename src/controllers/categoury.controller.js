@@ -254,7 +254,7 @@ USE ULTRA FAST VERSION IF:
 
 // 🚀 ULTRA FAST VERSION - No counting, lightning speed
 export const getCatagoury = asyncHandler(async (req, res) => {
-  const { categoury, adminpassword, page = 1, limit = 10 } = req.query;
+  const { categoury, adminpassword, page , limit  } = req.query;
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const parsedLimit = parseInt(limit);
 
@@ -585,7 +585,7 @@ export const deleteCategoury = asyncHandler(async (req, res) => {
 
   // 🚀 ULTRA-OPTIMIZED SINGLE QUERY VERSION - FASTEST
 export const getFollowingUsersCategoryUltraFast = asyncHandler(async (req, res) => {
-    const { category, page = 1, limit = 10 } = req.query;
+    const { category, page, limit  } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const parsedLimit = parseInt(limit);
     
@@ -666,7 +666,7 @@ export const getFollowingUsersCategoryUltraFast = asyncHandler(async (req, res) 
                 }
             },
             
-            // 🚀 STEP 7: Final projection
+            // 🚀 STEP 7: Final projection - FIXED
             {
                 $project: {
                     title: 1,
@@ -675,10 +675,8 @@ export const getFollowingUsersCategoryUltraFast = asyncHandler(async (req, res) 
                     thumbnail: 1,
                     createdAt: 1,
                     updatedAt: 1,
-                    owner: { $arrayElemAt: ["$ownerDetails", 0] },
-                    // Remove temporary fields
-                    followCheck: 0,
-                    ownerDetails: 0
+                    owner: { $arrayElemAt: ["$ownerDetails", 0] }
+                    // Removed the exclusion fields - they won't appear anyway since we're using inclusion
                 }
             }
         ];
