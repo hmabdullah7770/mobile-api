@@ -572,3 +572,264 @@ export const deleteCategoury = asyncHandler(async (req, res) => {
 
 
 
+
+
+
+
+
+  //get following user categoury 
+
+
+
+
+
+  // 🚀 ULTRA-OPTIMIZED SINGLE QUERY VERSION - FASTEST
+export const getFollowingUsersCategoryUltraFast = asyncHandler(async (req, res) => {
+    const { category, page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const parsedLimit = parseInt(limit);
+    
+    // Get current user ID from JWT token
+    const currentUserId = req.userVerfied._id;
+    
+    // Input validation
+    if (!category) {
+        throw new ApiError(400, "Category name is required");
+    }
+    
+    try {
+        // 🔥 SINGLE MEGA-OPTIMIZED AGGREGATION PIPELINE
+        const pipeline = [
+            // 🚀 STEP 1: Start with Cards collection (indexed on category + createdAt)
+            {
+                $match: category !== 'All' ? { category } : {}
+            },
+            
+            // 🚀 STEP 2: Early sort (uses index - SUPER FAST)
+            { 
+                $sort: { 
+                    createdAt: -1,
+                    _id: -1  // Secondary sort for consistency
+                } 
+            },
+            
+            // 🚀 STEP 3: Lookup to check if card owner is followed by current user
+            {
+                $lookup: {
+                    from: "followlists",
+                    let: { cardOwnerId: "$owner" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$follower", currentUserId] },
+                                        { $eq: ["$following", "$$cardOwnerId"] }
+                                    ]
+                                }
+                            }
+                        },
+                        { $limit: 1 } // Stop at first match
+                    ],
+                    as: "followCheck"
+                }
+            },
+            
+            // 🚀 STEP 4: Filter - only keep cards from followed users
+            {
+                $match: {
+                    "followCheck.0": { $exists: true }
+                }
+            },
+            
+            // 🚀 STEP 5: Skip + Limit early (before expensive operations)
+            { $skip: skip },
+            { $limit: parsedLimit + 1 }, // +1 to check hasNextPage
+            
+            // 🚀 STEP 6: Get owner details (only for final results)
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "ownerDetails",
+                    pipeline: [
+                        {
+                            $project: {
+                                username: 1,
+                                email: 1,
+                                avatar: 1,
+                                fullName: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            
+            // 🚀 STEP 7: Final projection
+            {
+                $project: {
+                    title: 1,
+                    description: 1,
+                    category: 1,
+                    thumbnail: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    owner: { $arrayElemAt: ["$ownerDetails", 0] },
+                    // Remove temporary fields
+                    followCheck: 0,
+                    ownerDetails: 0
+                }
+            }
+        ];
+        
+        // Execute single aggregation
+        const cards = await Card.aggregate(pipeline);
+        
+        // Check pagination
+        const hasNextPage = cards.length > parsedLimit;
+        if (hasNextPage) {
+            cards.pop(); // Remove extra item
+        }
+        
+        return res.status(200).json(
+            new ApiResponse(200, `Following users' ${category === 'All' ? 'all categories' : category} cards fetched`, {
+                cards,
+                pagination: {
+                    currentPage: parseInt(page),
+                    itemsPerPage: parsedLimit,
+                    hasNextPage,
+                    hasPrevPage: parseInt(page) > 1
+                }
+            })
+        );
+        
+    } catch (error) {
+        throw new ApiError(500, `Database error: ${error.message}`);
+    }
+});
+
+// 🔥 ALTERNATIVE: If you have TONS of cards, use this version
+export const getFollowingUsersCategoryMegaFast = asyncHandler(async (req, res) => {
+    const { category, page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const parsedLimit = parseInt(limit);
+    
+    const currentUserId = req.userVerfied._id;
+    
+    if (!category) {
+        throw new ApiError(400, "Category name is required");
+    }
+    
+    try {
+        // 🚀 MEGA OPTIMIZED: Start from Followlist (smaller collection)
+        const pipeline = [
+            // 🔥 STEP 1: Start with current user's followings
+            {
+                $match: { follower: currentUserId }
+            },
+            
+            // 🔥 STEP 2: Join with Cards collection
+            {
+                $lookup: {
+                    from: "cards",
+                    let: { followingUserId: "$following" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$owner", "$$followingUserId"] },
+                                        category !== 'All' ? { $eq: ["$category", category] } : {}
+                                    ].filter(Boolean) // Remove empty conditions
+                                }
+                            }
+                        },
+                        { $sort: { createdAt: -1 } }
+                    ],
+                    as: "userCards"
+                }
+            },
+            
+            // 🔥 STEP 3: Unwind cards
+            { $unwind: "$userCards" },
+            
+            // 🔥 STEP 4: Replace root with card document
+            { $replaceRoot: { newRoot: "$userCards" } },
+            
+            // 🔥 STEP 5: Sort all cards globally
+            { $sort: { createdAt: -1 } },
+            
+            // 🔥 STEP 6: Pagination
+            { $skip: skip },
+            { $limit: parsedLimit + 1 },
+            
+            // 🔥 STEP 7: Get owner details
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                        {
+                            $project: {
+                                username: 1,
+                                email: 1,
+                                avatar: 1,
+                                fullName: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            
+            // 🔥 STEP 8: Clean up
+            {
+                $addFields: {
+                    owner: { $arrayElemAt: ["$owner", 0] }
+                }
+            }
+        ];
+        
+        const cards = await Followlist.aggregate(pipeline);
+        
+        const hasNextPage = cards.length > parsedLimit;
+        if (hasNextPage) {
+            cards.pop();
+        }
+        
+        return res.status(200).json(
+            new ApiResponse(200, `Following users' ${category === 'All' ? 'all categories' : category} cards fetched`, {
+                cards,
+                pagination: {
+                    currentPage: parseInt(page),
+                    itemsPerPage: parsedLimit,
+                    hasNextPage,
+                    hasPrevPage: parseInt(page) > 1
+                }
+            })
+        );
+        
+    } catch (error) {
+        throw new ApiError(500, `Database error: ${error.message}`);
+    }
+});
+
+// 🚀 RECOMMENDED INDEXES FOR MAXIMUM SPEED
+/*
+Add these indexes to your MongoDB collections:
+
+// Cards collection
+db.cards.createIndex({ "category": 1, "createdAt": -1 })
+db.cards.createIndex({ "owner": 1, "category": 1, "createdAt": -1 })
+db.cards.createIndex({ "createdAt": -1 })
+
+// Followlists collection
+db.followlists.createIndex({ "follower": 1, "following": 1 })
+db.followlists.createIndex({ "follower": 1 })
+db.followlists.createIndex({ "following": 1 })
+
+// Users collection
+db.users.createIndex({ "_id": 1 })
+*/
