@@ -2,12 +2,12 @@ import mongoose, { Schema } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const createStoreSchema = new Schema({
-    template: {
-        type: String,
-        required: true,
-        trim: true,
-        index: true
-    },
+    // template: {
+    //     type: String,
+    //     required: true,
+    //     trim: true,
+    //     index: true
+    // },
     category: {
         type: String,
         // required: true,
@@ -20,6 +20,7 @@ const createStoreSchema = new Schema({
         trim: true,
         enum: ['nesh', 'one-product', 'multiple-product']
     },
+    
     storeName: {  // Changed to camelCase
         type: String,
         required: true,

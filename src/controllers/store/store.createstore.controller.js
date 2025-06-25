@@ -9,17 +9,17 @@ import { User } from "../../models/user.model.js";
 // Create a new store
 export const createStore = asyncHandler(async (req, res) => {
     const {
-        template,
+        // template,
         category,
         storeType,
         storeName,
         productName,
-        targetUrl,
-        isPublished = false
+        // targetUrl,
+        // isPublished = false
     } = req.body;
 
-    // Validate required fields
-    if (!template |!storeType || !storeName ) {
+    // Validate required fields  (!tamplate)
+    if (!storeType || !storeName ) {
         throw new ApiError(400, "All required fields must be provided");
     }
 
@@ -77,7 +77,7 @@ if(!storeLogo){
 
     // Create the store
     const store = await CreateStore.create({
-        template,
+        // template,
         category,
         storeType,
         storeName,
@@ -86,8 +86,8 @@ if(!storeLogo){
         productName,
         storeLogo: storeLogo.url,
         owner: req.userVerfied._id,
-        targetUrl,
-        isPublished
+        // targetUrl,
+        // isPublished
     });
 
  // Update user model with store information
@@ -223,13 +223,13 @@ export const updateStore = asyncHandler(async (req, res) => {
     const { storeId } = req.params;
     
     const {
-        template,
+        // template,
         category,
         storeType,
         storeName,
         productName,
-        targetUrl,
-        isPublished
+        // targetUrl,
+        // isPublished
     } = req.body;
     
     // Get the store (the middleware already verified ownership)
