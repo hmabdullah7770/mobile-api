@@ -474,7 +474,7 @@ export const refreshToken = asyncHandler(async (req, res)=>{
   //send the new access token and refresh token to the user
   //send the cookies to the user
   //return the response
-// try{
+ try{
   const incommingrefreshToken = req.cookies?.refreshToken || req.headers.authorization?.replace('Bearer ', '')
 
   if(!incommingrefreshToken ){
@@ -519,13 +519,19 @@ export const refreshToken = asyncHandler(async (req, res)=>{
   .cookie("refreshToken",refreshToken,options)
   .json(new ApiResponse(200,{accessToken,refreshToken},"Token refreshed successfully"))
 }
-// catch(error){
+catch (error) {
+    // console.error('Refresh token error:', error);
+    
+    // if (error.name === 'TokenExpiredError') {
+    //   throw new ApiError(401, "Refresh token expired");
+    // } else if (error.name === 'JsonWebTokenError') {
+    //   throw new ApiError(401, "Invalid refresh token");
+    // }
+    
+    throw new ApiError(401, error.message , error.name || "Token refresh failed");
+  }
 
-//   new ApiError(500, 'error in freresh  token',error)
-
-// }
-
-// }
+}
 )
 
 

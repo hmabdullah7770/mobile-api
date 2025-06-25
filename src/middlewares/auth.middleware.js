@@ -4,7 +4,7 @@ import { ApiResponse} from "../utils/ApiResponse.js"
 import { User } from '../models/user.model.js';
 
 const VerfyJwt =async (req,res,next)=>{
-debugger
+
     //verified the login user
     try{
 
@@ -45,7 +45,10 @@ debugger
     }
     catch(error){
 
-        next(new ApiError(401, error.message || "Authentication failed"));
+     
+
+
+      return next( new ApiError(401, error.message || "Authentication failed"))
     }
     }
 
