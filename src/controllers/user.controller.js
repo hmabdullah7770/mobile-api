@@ -465,74 +465,125 @@ return res
 });
 
 
-export const refreshToken = asyncHandler(async (req, res)=>{
+// export const refreshToken = asyncHandler(async (req, res)=>{
 
-  //get the refresh token from the cookies
-  //verify the refresh token
-  //find the user from the database 
-  //generate new access token and refresh token
-  //send the new access token and refresh token to the user
-  //send the cookies to the user
-  //return the response
- try{
+//   //get the refresh token from the cookies
+//   //verify the refresh token
+//   //find the user from the database 
+//   //generate new access token and refresh token
+//   //send the new access token and refresh token to the user
+//   //send the cookies to the user
+//   //return the response
+//  try{
+//   const incommingrefreshToken = req.cookies?.refreshToken || req.headers.authorization?.replace('Bearer ', '')
+
+//   if(!incommingrefreshToken ){
+
+//     throw new ApiError(410,"Refresh token is not in the header or cookies")
+
+//   }
+
+//   const decordreftoken = jwt.verify(incommingrefreshToken,process.env.REFRESH_TOKEN_SECRET)
+
+//   if(!decordreftoken?._id){
+
+//     throw new ApiError(411,"Refresh token is invalid or expired")
+
+//   }
+
+//   const user = await User.findById(decordreftoken._id)
+
+//   if(!user){
+//     throw new ApiError(412,"decorded user not found in the database")
+
+//   }
+
+//   console.log('Incoming Token:', incommingrefreshToken);
+//   console.log('Stored Token:', user.refreshToken);
+//           if (await user.refreshToken !== incommingrefreshToken) {
+             
+//            throw new ApiError(413,"refresh token does not match with the user in the dat")
+           
+//           }
+
+
+//   const {accessToken,refreshToken}= await generateAccessTokenAndRefreshToken(user._id)
+
+//   console.log('After generating new Stored Token:', user.refreshToken);
+//   const options = {
+//     httpOnly: true,
+//     security: true,
+//   }
+
+//   return res.status(200).cookie("accessToken",accessToken,options)
+//   .cookie("refreshToken",refreshToken,options)
+//   .json(new ApiResponse(200,{accessToken,refreshToken},"Token refreshed successfully"))
+// }
+// catch (error) {
+//     // console.error('Refresh token error:', error);
+    
+//     // if (error.name === 'TokenExpiredError') {
+//     //   throw new ApiError(401, "Refresh token expired");
+//     // } else if (error.name === 'JsonWebTokenError') {
+//     //   throw new ApiError(401, "Invalid refresh token");
+//     // }
+    
+//     throw new ApiError(414, error.message , error.name || "Token refresh failed");
+//   }
+
+// }
+// )
+
+export const refreshToken = asyncHandler(async (req, res) => {
   const incommingrefreshToken = req.cookies?.refreshToken || req.headers.authorization?.replace('Bearer ', '')
-
-  if(!incommingrefreshToken ){
-
-    throw new ApiError(410,"Refresh token is not in the header or cookies")
-
+  
+  if (!incommingrefreshToken) {
+    throw new ApiError(410, "Refresh token is not in the header or cookies")
   }
 
-  const decordreftoken = jwt.verify(incommingrefreshToken,process.env.REFRESH_TOKEN_SECRET)
-
-  if(!decordreftoken?._id){
-
-    throw new ApiError(411,"Refresh token is invalid or expired")
-
+  // Handle JWT verification errors specifically
+  let decordreftoken;
+  try {
+    decordreftoken = jwt.verify(incommingrefreshToken, process.env.REFRESH_TOKEN_SECRET)
+  } catch (jwtError) {
+    if (jwtError.name === 'TokenExpiredError') {
+      throw new ApiError(414, "jwt expired")
+    } else if (jwtError.name === 'JsonWebTokenError') {
+      throw new ApiError(411, "Refresh token is invalid or malformed")
+    } else {
+      throw new ApiError(411, "Refresh token verification failed")
+    }
   }
-
+  
+  if (!decordreftoken?._id) {
+    throw new ApiError(411, "Refresh token is invalid or expired")
+  }
+  
   const user = await User.findById(decordreftoken._id)
-
-  if(!user){
-    throw new ApiError(412,"decorded user not found in the database")
-
+  
+  if (!user) {
+    throw new ApiError(412, "decoded user not found in the database")
   }
-
+  
   console.log('Incoming Token:', incommingrefreshToken);
   console.log('Stored Token:', user.refreshToken);
-          if (await user.refreshToken !== incommingrefreshToken) {
-             
-           throw new ApiError(413,"refresh token does not match with the user in the dat")
-           
-          }
-
-
-  const {accessToken,refreshToken}= await generateAccessTokenAndRefreshToken(user._id)
-
-  console.log('After generating new Stored Token:', user.refreshToken);
+  
+  if (user.refreshToken !== incommingrefreshToken) {
+    throw new ApiError(413, "refresh token does not match with the user in the database")
+  }
+  
+  const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user._id)
+  
   const options = {
     httpOnly: true,
-    security: true,
+    secure: true,
   }
-
-  return res.status(200).cookie("accessToken",accessToken,options)
-  .cookie("refreshToken",refreshToken,options)
-  .json(new ApiResponse(200,{accessToken,refreshToken},"Token refreshed successfully"))
-}
-catch (error) {
-    // console.error('Refresh token error:', error);
-    
-    // if (error.name === 'TokenExpiredError') {
-    //   throw new ApiError(401, "Refresh token expired");
-    // } else if (error.name === 'JsonWebTokenError') {
-    //   throw new ApiError(401, "Invalid refresh token");
-    // }
-    
-    throw new ApiError(414, error.message , error.name || "Token refresh failed");
-  }
-
-}
-)
+  
+  return res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(new ApiResponse(200, { accessToken, refreshToken }, "Token refreshed successfully"))
+})
 
 
 export const forgetPassword = asyncHandler(async(req,res)=>{
