@@ -141,7 +141,7 @@ if(!username){
 const user = await User.findOne({username})
 
 if(user){
-  throw new ApiError(401,"Username Already taken please chose another")
+  throw new ApiError(402,"Username Already taken please chose another")
 }
 
 return res
@@ -479,7 +479,7 @@ export const refreshToken = asyncHandler(async (req, res)=>{
 
   if(!incommingrefreshToken ){
 
-    throw new ApiError(401,"Refresh token is not in the header or cookies")
+    throw new ApiError(410,"Refresh token is not in the header or cookies")
 
   }
 
@@ -487,14 +487,14 @@ export const refreshToken = asyncHandler(async (req, res)=>{
 
   if(!decordreftoken?._id){
 
-    throw new ApiError(401,"Refresh token is invalid or expired")
+    throw new ApiError(411,"Refresh token is invalid or expired")
 
   }
 
   const user = await User.findById(decordreftoken._id)
 
   if(!user){
-    throw new ApiError(404,"decorded user not found in the database")
+    throw new ApiError(412,"decorded user not found in the database")
 
   }
 
@@ -502,7 +502,7 @@ export const refreshToken = asyncHandler(async (req, res)=>{
   console.log('Stored Token:', user.refreshToken);
           if (await user.refreshToken !== incommingrefreshToken) {
              
-           throw new ApiError(404,"refresh token does not match with the user in the dat")
+           throw new ApiError(413,"refresh token does not match with the user in the dat")
            
           }
 
@@ -528,7 +528,7 @@ catch (error) {
     //   throw new ApiError(401, "Invalid refresh token");
     // }
     
-    throw new ApiError(401, error.message , error.name || "Token refresh failed");
+    throw new ApiError(414, error.message , error.name || "Token refresh failed");
   }
 
 }
