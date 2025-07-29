@@ -278,7 +278,7 @@ export const createCarousel = asyncHandler(async (req, res) => {
 // Get all carousels for a store
 export const getStoreCarousels = asyncHandler(async (req, res) => {
     const { storeId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    // const { page = 1, limit = 10 } = req.query;
 
     // // Validate storeId format
     // if (!mongoose.Types.ObjectId.isValid(storeId)) {
@@ -293,8 +293,8 @@ export const getStoreCarousels = asyncHandler(async (req, res) => {
 
     // Get carousels with pagination
     const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        // page: parseInt(page),
+        // limit: parseInt(limit),
         sort: { createdAt: -1 }
     };
 

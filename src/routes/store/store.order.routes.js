@@ -6,6 +6,7 @@ import {
     getOrderById,
     updateOrderStatus,
     getCustomerOrders,
+     getCustomerOrdersFromOneStore ,
     deleteOrderByOwner,
     deleteOrderbycustomer
 } from '../../controllers/store/store.order.controller.js';
@@ -19,9 +20,13 @@ router.use(VerfyJwt);
 // Customer routes
 // router.post('/order/:storeId/create', createOrder);
 router.post('/orders/create', createOrder);
+ //get customer orders from all sdtores
 router.get('/orders/my-orders', getCustomerOrders);
+//get customder orders from one store
+router.get('/orders/my-orders/:storeId', getCustomerOrdersFromOneStore);
 router.get('/:orderId/:storeId', verifyStoreOwner,getOrderById);
 router.delete('/order/:orderId',deleteOrderbycustomer)          
+
 
 // Store owner routes
 router.get('/orders/store/:storeId', verifyStoreOwner,getStoreOrders);

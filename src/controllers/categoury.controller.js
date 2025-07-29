@@ -502,7 +502,7 @@ export const getAllCategouryName = asyncHandler(async (req, res) => {
 
     const allCategoury = await Categoury.find();
 
-  return  res.status(200).json(new ApiResponse(201,"Categoury fetched successfully", allCategoury));
+  return  res.status(200).json(new ApiResponse(201,`${allCategoury.length}`, allCategoury ));
 
 
 })
@@ -709,7 +709,7 @@ export const getFollowingUsersCategoryUltraFast = asyncHandler(async (req, res) 
 
 // 🔥 ALTERNATIVE: If you have TONS of cards, use this version
 export const getFollowingUsersCategoryMegaFast = asyncHandler(async (req, res) => {
-    const { category, page = 1, limit = 10 } = req.query;
+    const { category, page , limit  } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const parsedLimit = parseInt(limit);
     
@@ -814,20 +814,390 @@ export const getFollowingUsersCategoryMegaFast = asyncHandler(async (req, res) =
     }
 });
 
-// 🚀 RECOMMENDED INDEXES FOR MAXIMUM SPEED
-/*
-Add these indexes to your MongoDB collections:
 
-// Cards collection
-db.cards.createIndex({ "category": 1, "createdAt": -1 })
-db.cards.createIndex({ "owner": 1, "category": 1, "createdAt": -1 })
-db.cards.createIndex({ "createdAt": -1 })
 
-// Followlists collection
-db.followlists.createIndex({ "follower": 1, "following": 1 })
-db.followlists.createIndex({ "follower": 1 })
-db.followlists.createIndex({ "following": 1 })
 
-// Users collection
-db.users.createIndex({ "_id": 1 })
-*/
+// 🚀 UNIFIED FEED - Cards + Videos Combined (Instagram-like feed)
+export const getUnifiedFeed = asyncHandler(async (req, res) => {
+  const { categoury, adminpassword, page , limit  } = req.query;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const parsedLimit = parseInt(limit);
+
+  // Input validation
+  if (!adminpassword) {
+    throw new ApiError(400, "Admin password is required");
+  }
+
+  if (adminpassword !== "(Bunny)tota#34#") {
+    throw new ApiError(403, "Access denied");
+  }
+
+  if (!categoury) {
+    throw new ApiError(400, "Category name is required");
+  }
+
+  try {
+    // Build match condition
+    const matchCondition = {};
+    if (categoury !== 'All') {
+      matchCondition.categoury = categoury;
+    }
+
+    // 🔥 CARDS PIPELINE
+    const cardsPipeline = [
+      // Match cards
+      ...(Object.keys(matchCondition).length > 0 ? [{ $match: matchCondition }] : []),
+      
+      // Add content type identifier
+      {
+        $addFields: {
+          contentType: "card",
+          sortDate: "$createdAt"
+        }
+      },
+      
+      // Get owner details
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $project: {
+                username: 1,
+                email: 1,
+                avatar: 1,
+                fullName: 1
+              }
+            }
+          ]
+        }
+      },
+      { $unwind: "$owner" },
+      
+      // Project card fields
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          category: 1,
+          thumbnail: 1,
+          owner: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          contentType: 1,
+          sortDate: 1,
+          // Card specific fields
+          totalViews: 1,
+          averageRating: 1,
+          whatsapp: 1,
+          storeLink: 1,
+          facebook: 1,
+          instagram: 1,
+          productlink: 1
+        }
+      }
+    ];
+
+    // 🔥 VIDEOS PIPELINE
+    const videosPipeline = [
+      // Match videos (Note: videos use 'Uploaded' instead of 'isPublished')
+      {
+        $match: {
+          ...matchCondition,
+          Uploaded: true
+        }
+      },
+      
+      // Add content type identifier
+      {
+        $addFields: {
+          contentType: "video",
+          sortDate: "$createdAt"
+        }
+      },
+      
+      // Get owner details
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $project: {
+                username: 1,
+                email: 1,
+                avatar: 1,
+                fullName: 1
+              }
+            }
+          ]
+        }
+      },
+      { $unwind: "$owner" },
+      
+      // Project video fields
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          category: 1,
+          thumbnail: 1,
+          owner: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          contentType: 1,
+          sortDate: 1,
+          // Video specific fields
+          videoFile: 1,
+          duration: 1,
+          onclicks: 1,
+          averageRating: 1,
+          whatsapp: 1,
+          storeLink: 1,
+          facebook: 1,
+          instagram: 1,
+          productlink: 1
+        }
+      }
+    ];
+
+    // 🚀 COMBINED PIPELINE USING $unionWith
+    const combinedPipeline = [
+      // Start with cards
+      ...cardsPipeline,
+      
+      // Union with videos
+      {
+        $unionWith: {
+          coll: "videos",
+          pipeline: videosPipeline
+        }
+      },
+      
+      // Sort by creation date (newest first)
+      {
+        $sort: { sortDate: -1 }
+      },
+      
+      // Skip for pagination
+      { $skip: skip },
+      
+      // Limit + 1 to check if there's next page
+      { $limit: parsedLimit + 1 }
+    ];
+
+    // Execute the combined query
+    const content = await Card.aggregate(combinedPipeline);
+
+    // Check pagination
+    const hasNextPage = content.length > parsedLimit;
+    if (hasNextPage) {
+      content.pop(); // Remove extra item
+    }
+
+    if (content.length === 0 && categoury !== 'All') {
+      throw new ApiError(404, "No content found for this category");
+    }
+
+    return res.status(200).json(
+      new ApiResponse(200, `${categoury === 'All' ? 'All categories' : 'Category'} unified feed fetched successfully`, {
+        content,
+        pagination: {
+          currentPage: parseInt(page),
+          itemsPerPage: parsedLimit,
+          totalSkip: skip,
+          hasNextPage,
+          hasPrevPage: parseInt(page) > 1
+        }
+      })
+    );
+
+  } catch (error) {
+    throw new ApiError(500, `Database error: ${error.message}`);
+  }
+});
+
+
+
+
+// 🚀 FOLLOWING USERS UNIFIED FEED
+export const getFollowingUsersUnifiedFeed = asyncHandler(async (req, res) => {
+  const { category, page , limit  } = req.query;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const parsedLimit = parseInt(limit);
+  
+  const currentUserId = req.userVerfied._id;
+  
+  if (!category) {
+    throw new ApiError(400, "Category name is required");
+  }
+
+  try {
+    // Build match condition
+    const matchCondition = {};
+    if (category !== 'All') {
+      matchCondition.category = category;
+    }
+
+    // 🔥 UNIFIED PIPELINE FOR FOLLOWING USERS
+    const pipeline = [
+      // Start with cards
+      {
+        $match: matchCondition
+      },
+      
+      // Check if card owner is followed
+      {
+        $lookup: {
+          from: "followlists",
+          let: { ownerId: "$owner" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$follower", currentUserId] },
+                    { $eq: ["$following", "$$ownerId"] }
+                  ]
+                }
+              }
+            },
+            { $limit: 1 }
+          ],
+          as: "followCheck"
+        }
+      },
+      
+      // Only keep content from followed users
+      {
+        $match: {
+          "followCheck.0": { $exists: true }
+        }
+      },
+      
+      // Add content type
+      {
+        $addFields: {
+          contentType: "card",
+          sortDate: "$createdAt"
+        }
+      },
+      
+      // Union with videos from followed users
+      {
+        $unionWith: {
+          coll: "videos",
+          pipeline: [
+            {
+              $match: {
+                ...matchCondition,
+                Uploaded: true
+              }
+            },
+            {
+              $lookup: {
+                from: "followlists",
+                let: { ownerId: "$owner" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $and: [
+                          { $eq: ["$follower", currentUserId] },
+                          { $eq: ["$following", "$$ownerId"] }
+                        ]
+                      }
+                    }
+                  },
+                  { $limit: 1 }
+                ],
+                as: "followCheck"
+              }
+            },
+            {
+              $match: {
+                "followCheck.0": { $exists: true }
+              }
+            },
+            {
+              $addFields: {
+                contentType: "video",
+                sortDate: "$createdAt"
+              }
+            }
+          ]
+        }
+      },
+      
+      // Sort by creation date
+      {
+        $sort: { sortDate: -1 }
+      },
+      
+      // Pagination
+      { $skip: skip },
+      { $limit: parsedLimit + 1 },
+      
+      // Get owner details
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $project: {
+                username: 1,
+                email: 1,
+                avatar: 1,
+                fullName: 1
+              }
+            }
+          ]
+        }
+      },
+      
+      // Clean up
+      {
+        $addFields: {
+          owner: { $arrayElemAt: ["$owner", 0] }
+        }
+      },
+      
+      // Remove unnecessary fields
+      {
+        $project: {
+          followCheck: 0
+        }
+      }
+    ];
+
+    const content = await Card.aggregate(pipeline);
+    
+    const hasNextPage = content.length > parsedLimit;
+    if (hasNextPage) {
+      content.pop();
+    }
+
+    return res.status(200).json(
+      new ApiResponse(200, `Following users' ${category === 'All' ? 'all categories' : category} unified feed fetched`, {
+        content,
+        pagination: {
+          currentPage: parseInt(page),
+          itemsPerPage: parsedLimit,
+          hasNextPage,
+          hasPrevPage: parseInt(page) > 1
+        }
+      })
+    );
+
+  } catch (error) {
+    throw new ApiError(500, `Database error: ${error.message}`);
+  }
+});

@@ -1,0 +1,2 @@
+//for multiple store for one user he pay for it and we create another api may be also another model
+//for more than 10 product he shoud pay to get cloud storage

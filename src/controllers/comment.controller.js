@@ -336,15 +336,52 @@ const updateComment = asyncHandler(async (req, res) => {
     );
 });
 
+// const deleteComment = asyncHandler(async (req, res) => {
+//     const {commentId} = req.params;
+    
+//     if (!isValidObjectId(commentId)) {
+//         throw new ApiError(400, "Invalid comment ID");
+//     }
+    
+//     // Find comment
+//     const comment = await Comment.findById(commentId);
+    
+//     if (!comment) {
+//         throw new ApiError(404, "Comment not found");
+//     }
+    
+//     // Check if user is the owner of comment
+//     if (comment.owner.toString() !== req.userVerfied._id.toString()) {
+//         throw new ApiError(403, "You are not authorized to delete this comment");
+//     }
+    
+//     // Delete the comment
+//     await Comment.findByIdAndDelete(commentId);
+    
+//     return res.status(200).json(
+//         new ApiResponse(200, {}, "Comment deleted successfully")
+//     );
+// });
+
+
 const deleteComment = asyncHandler(async (req, res) => {
     const {commentId} = req.params;
+    const {contentType, contentId} = req.body;
     
-    if (!isValidObjectId(commentId)) {
-        throw new ApiError(400, "Invalid comment ID");
+    if (!isValidObjectId(commentId) || !isValidObjectId(contentId)) {
+        throw new ApiError(400, "Invalid comment ID or content ID");
     }
     
-    // Find comment
-    const comment = await Comment.findById(commentId);
+    if (!["card", "video"].includes(contentType)) {
+        throw new ApiError(400, "Invalid content type");
+    }
+    
+    // Find comment with more specific query
+    const comment = await Comment.findOne({
+        _id: commentId,
+        contentId: contentId,
+        contentType: contentType
+    });
     
     if (!comment) {
         throw new ApiError(404, "Comment not found");
@@ -355,13 +392,19 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You are not authorized to delete this comment");
     }
     
-    // Delete the comment
-    await Comment.findByIdAndDelete(commentId);
+    // Delete the comment and its replies in one operation
+    await Promise.all([
+        Comment.deleteOne({ _id: commentId }),
+        Comment.deleteMany({ parentComment: commentId, isReply: true })
+    ]);
     
     return res.status(200).json(
-        new ApiResponse(200, {}, "Comment deleted successfully")
+        new ApiResponse(200, {}, "Comment and its replies deleted successfully")
     );
 });
+
+
+
 
 const getCommentsWithRatings = asyncHandler(async (req, res) => {
     const {contentId, contentType} = req.params;

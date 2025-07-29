@@ -163,7 +163,7 @@ export const matchOtp = asyncHandler(async(req, res)=>{
 
   }
 
-   const enteredOtp = await Otp.findOne({ email , purpose :'registration'})
+   const enteredOtp = await Otp.findOne({ email , purpose :'password_reset'})
 
 
    if(!enteredOtp){

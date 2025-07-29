@@ -8,6 +8,12 @@ const createStoreSchema = new Schema({
     //     trim: true,
     //     index: true
     // },
+
+    // userId:{
+    //     type: String,
+    //     required: true,
+    // },
+
     category: {
         type: String,
         // required: true,
@@ -38,6 +44,7 @@ const createStoreSchema = new Schema({
         required: function() { return this.storeType === 'one-product'; } ,
         sparse: true // Only required for one-product stores
     },
+
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",

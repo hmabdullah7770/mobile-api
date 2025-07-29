@@ -317,6 +317,8 @@ export const getStoreOrders = asyncHandler(async (req, res) => {
     );
 });
 
+
+
 // Get a specific order
 export const getOrderById = asyncHandler(async (req, res) => {
     const { orderId ,storeId} = req.params;
@@ -436,9 +438,9 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     );
 });
 
-// Get customer's orders
+// Get customer's orders from all stores 
 export const getCustomerOrders = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 10, status} = req.query;
 
     // Build query
     const query = { customerId: req.userVerfied._id };
@@ -512,6 +514,72 @@ export const getCustomerOrders = asyncHandler(async (req, res) => {
         new ApiResponse(200, orders, "Customer orders retrieved successfully")
     );
 });
+
+
+
+// Get customer order from one store 
+//Alternative simpler version without aggregation
+
+// customer order from one store
+
+export const getCustomerOrdersFromOneStore = asyncHandler(async (req, res) => {
+    const { storeId } = req.params;
+
+    // Validate storeId
+    if (!storeId) {
+        throw new ApiError(400, "Store ID is required");
+    }
+
+    // Check if store exists
+    const store = await CreateStore.findById(storeId);
+    if (!store) {
+        throw new ApiError(404, "Store not found");
+    }
+
+    // Check if user is trying to get orders from their own store
+    if (store.owner.toString() === req.userVerfied._id.toString()) {
+        throw new ApiError(400, "You cannot view orders from your own store as a customer");
+    }
+
+    // Build query
+    const query = { 
+        customerId: req.userVerfied._id,
+        storeId: storeId 
+    };
+
+    // Get orders and populate store owner details
+    const orders = await Order.find(query)
+        .populate('storeOwnerId', 'username fullName avatar email')
+        .sort({ createdAt: -1 });
+
+    // Add store details to each order
+    const ordersWithStoreDetails = orders.map(order => ({
+        ...order.toObject(),
+        storeDetails: {
+            storeName: store.storeName,
+            storeLogo: store.storeLogo,
+            storeDescription: store.storeDescription
+        }
+    }));
+
+    return res.status(200).json(
+        new ApiResponse(
+            200, 
+            {
+                orders: ordersWithStoreDetails,
+                totalOrders: orders.length,
+                storeInfo: {
+                    storeId: store._id,
+                    storeName: store.storeName,
+                    storeLogo: store.storeLogo
+                }
+            }, 
+            `Orders from ${store.storeName} retrieved successfully`
+        )
+    );
+});
+
+
 
 
 

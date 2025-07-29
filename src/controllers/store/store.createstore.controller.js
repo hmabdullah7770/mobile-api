@@ -6,9 +6,12 @@ import { uploadResult } from '../../utils/Claudnary.js'
 import mongoose from 'mongoose';
 import { User } from "../../models/user.model.js";
 
+//for multiple store for one user he pay for it and we create another api may be also another model
+
 // Create a new store
 export const createStore = asyncHandler(async (req, res) => {
     const {
+        // userId,
         // template,
         category,
         storeType,
@@ -23,17 +26,29 @@ export const createStore = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All required fields must be provided");
     }
 
+//  if (!userId) {
+//     throw new ApiError(400, "User ID is required");
+//    }
 
-    const Storenameeexist = await CreateStore.findOne({ storeName});
+   const Storeexist = await CreateStore.findById(req.userVerfied._id);
+
+   if(Storeexist){
+
+    throw new ApiError(409, "You already have a store");
+   }
+
+    const Storenameeexist = await CreateStore.findOne({storeName});
     
       console.log("Storeis :", Storenameeexist );
     
+      
       if (Storenameeexist) {
         throw new ApiError(409, "Store nameealready taken chose another");
       }
 
-
+  
       
+
     // Validate storeType is valid
     if (!['nesh', 'one-product', 'multiple-product'].includes(storeType)) {
         throw new ApiError(400, "Invalid store type");
