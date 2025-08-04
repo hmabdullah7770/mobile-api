@@ -86,7 +86,8 @@ const getAllCards = asyncHandler(async (req, res) => {
                         $project: {
                             username: 1,
                             fullName: 1,
-                            avatar: 1
+                            avatar: 1,
+                            stores:1,
                         }
                     }
                 ]
@@ -188,7 +189,7 @@ const getCardById = asyncHandler(async (req, res) => {
 
 // Create Card
 const publishCard = asyncHandler(async (req, res) => {
-    const { title, description, category, ...socialPayload } = req.body;
+    const { title, description, category,store,...socialPayload  } = req.body;
     
     if (!title || !description) {
         throw new ApiError(400, "Title and description are required");
@@ -243,8 +244,11 @@ const publishCard = asyncHandler(async (req, res) => {
             title,
             description,
             category,
+            
+         
             thumbnail: thumbnail.url,
             owner: user._id,
+            store: Boolean(store), 
             ...socialLinks.socialLinks 
         });
 

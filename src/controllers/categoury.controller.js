@@ -671,6 +671,7 @@ export const getFollowingUsersCategoryUltraFast = asyncHandler(async (req, res) 
                 $project: {
                     title: 1,
                     description: 1,
+                    store:1,
                     category: 1,
                     thumbnail: 1,
                     createdAt: 1,
@@ -869,7 +870,8 @@ export const getUnifiedFeed = asyncHandler(async (req, res) => {
                 username: 1,
                 email: 1,
                 avatar: 1,
-                fullName: 1
+                fullName: 1,
+                stores:1
               }
             }
           ]
@@ -881,6 +883,7 @@ export const getUnifiedFeed = asyncHandler(async (req, res) => {
       {
         $project: {
           title: 1,
+          store:1,
           description: 1,
           category: 1,
           thumbnail: 1,
@@ -932,7 +935,8 @@ export const getUnifiedFeed = asyncHandler(async (req, res) => {
                 username: 1,
                 email: 1,
                 avatar: 1,
-                fullName: 1
+                fullName: 1,
+                stores:1,
               }
             }
           ]
@@ -944,6 +948,7 @@ export const getUnifiedFeed = asyncHandler(async (req, res) => {
       {
         $project: {
           title: 1,
+          store:1,
           description: 1,
           category: 1,
           thumbnail: 1,
@@ -1156,7 +1161,8 @@ export const getFollowingUsersUnifiedFeed = asyncHandler(async (req, res) => {
                 username: 1,
                 email: 1,
                 avatar: 1,
-                fullName: 1
+                fullName: 1,
+                stores:1,
               }
             }
           ]

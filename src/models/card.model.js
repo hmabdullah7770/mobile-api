@@ -7,6 +7,16 @@ import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 import { Comment } from "./comment.model.js";
 
 const cardSchema = new Schema({
+   
+
+      store: {
+        type: Boolean,
+        
+        default: false
+    },
+   
+   
+   
     title: {
         type: String,
         required: true,
@@ -18,6 +28,7 @@ const cardSchema = new Schema({
         required: true,
         trim: true
     },
+    
     category: {
         type: String,
         required: true,

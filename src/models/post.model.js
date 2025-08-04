@@ -1,0 +1,221 @@
+//optimized code
+import mongoose, { Schema } from "mongoose";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
+import { Comment } from "./comment.model.js";
+
+const postSchema = new Schema({
+   
+
+      store: {
+        type: Boolean,
+        
+        default: false
+    },
+   
+   productId:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Store_Product",
+        // required: false
+    },
+
+   
+
+
+   videocount:{
+        type: Number,
+        default: 0
+    },
+
+   
+
+   imagecount:{
+        type: Number,
+        default: 0
+    },
+
+audiocount:{
+        type: Number,
+        default: 0
+       },
+
+    title: {
+        type: String,
+        required: true,
+        trim: true,
+        index: true
+    },
+    description: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    
+    category: {
+        type: String,
+        required: true,
+        trim: true,
+        index: true
+    },
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+    thumbnail: {
+        type: String,
+        // required: true
+    },
+
+    imageFiles: [{
+        type: String,  // cloudinary url
+         enum: ['L','S'],
+        default: 'L',
+        // required: true
+    }],
+    
+    videoFile:[ {
+        type: String,  // cloudinary url
+         enum: ['L','S'],
+        default: 'L',
+        // required: true
+    }],
+
+    audioFile: [{
+        type: String,  // cloudinary url
+        // required: true
+    }],
+
+    // pdfFile: {
+    //     type: String,  // cloudinary url
+    //     // required: true
+    // },
+
+    
+    pattern: {
+    type: String,
+    enum: [
+      'single', // One media file
+      'grid_2x2', // 4 items in 2x2 grid
+      'grid_1_2', // 1 large + 2 small (L pattern)
+      'grid_2_1', // 2 small + 1 large
+      'linear', // Linear arrangement
+      'masonry', // Pinterest-style masonry
+      'story', // Story-style vertical
+      'carousel' // Horizontal carousel
+    ],
+    default: 'single'
+  },
+
+
+
+    views: {
+        type: Number,
+        default: 0,
+    },
+    isPublished: {
+        type: Boolean,
+        default: true
+    },
+    whatsapp: {
+        type: Number
+    },
+    storeLink: {
+        type: String
+    },
+    facebook: {
+        type: String
+    },
+    instagram: {
+        type: String
+    },
+    productlink: {
+        type: String
+    },
+    totalRating: {
+        type: Number,
+        default: 0
+    },
+    ratingCount: {
+        type: Number,
+        default: 0
+    },
+    averageRating: {
+        type: Number,
+        default: 0
+    },
+    totalViews: {
+        type: Number,
+        default: 0
+    }
+,
+
+//     shares: [{
+//     user: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: 'User'
+//     },
+//     createdAt: {
+//       type: Date,
+//       default: Date.now
+//     }
+//   }],
+
+
+
+//   // Engagement metrics
+//   likes: [{
+//     user: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: 'User'
+//     },
+//     createdAt: {
+//       type: Date,
+//       default: Date.now
+//     }
+//   }],
+  
+  // Comments count (comments stored separately like in card model)
+  commentCount: {
+    type: Number,
+    default: 0
+  },
+
+
+
+}, { timestamps: true })
+
+// Static method for cascading delete
+postSchema.static('findByIdAndDelete', async function(id) {
+    await Comment.deleteMany({ contentId: id, contentType: "post" }); // Changed "card" to "post"
+    return this.findOneAndDelete({ _id: id });
+});
+
+postSchema.plugin(mongooseAggregatePaginate)
+
+// ============ OPTIMIZED INDEXES ============
+// Text search index
+postSchema.index({ title: "text", description: "text", category: "text" });
+
+// Individual indexes
+postSchema.index({ owner: 1 });
+postSchema.index({ averageRating: -1 });
+postSchema.index({ totalViews: -1 });
+postSchema.index({ isPublished: 1 });
+
+// Compound indexes for performance
+postSchema.index({ category: 1, createdAt: -1 });
+postSchema.index({ createdAt: -1 });
+postSchema.index({ owner: 1, createdAt: -1 });
+postSchema.index({ isPublished: 1, category: 1, createdAt: -1 });
+postSchema.index({ isPublished: 1, createdAt: -1 });
+
+export const Post = mongoose.model("Post", postSchema); // Changed model name to "Post"
+
+
+
+
+
+
+
+
+
