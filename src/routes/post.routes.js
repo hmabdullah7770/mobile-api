@@ -15,28 +15,29 @@ import { upload } from "../middlewares/multer.middleware.js";
 const router = express.Router();
 
 // Get all posts
-router.get("/post", VerifyJwt, getAllPosts);
+router.get("/getall", VerifyJwt, getAllPosts);
 
 // Create/publish a new post
-router.post("/post/create",
+router.post("/create",
     VerifyJwt,
     upload.fields([
         { name: "imageFiles", maxCount: 10 },  // Multiple images
         { name: "videoFiles", maxCount: 5 },   // Multiple videos
-        { name: "audioFiles", maxCount: 5 },   // Multiple audio files
+        { name: "audioFiles", maxCount: 5 }, 
+         { name: "song", maxCount: 6 }  ,  // Multiple audio files
         { name: "thumbnail", maxCount: 1 }     // Single thumbnail
     ]),
     publishPost
 );
 
 // Get a specific post by ID
-router.get("/post/:postId", VerifyJwt, getPostById);
+router.get("/:postId", VerifyJwt, getPostById);
 
 // Delete a post
-router.delete("/post/:postId", VerifyJwt, deletePost);
+router.delete("/:postId", VerifyJwt, deletePost);
 
 // Update a post
-router.patch("/post/:postId",
+router.patch("/:postId",
     VerifyJwt,
     upload.fields([
         { name: "imageFiles", maxCount: 10 },  // Additional images
@@ -48,13 +49,13 @@ router.patch("/post/:postId",
 );
 
 // Toggle publish status
-router.patch("/post/toggle/publish/:postId", VerifyJwt, togglePublishStatus);
+router.patch("/toggle/publish/:postId", VerifyJwt, togglePublishStatus);
 
 // Increment social link view count
-router.get("/post/:postId/social/:linkType", incrementSocialLinkView);
+router.get("/:postId/social/:linkType", incrementSocialLinkView);
 
 // Remove specific media files from post
-router.patch("/post/:postId/remove-media", VerifyJwt, removeMediaFiles);
+router.patch("/:postId/remove-media", VerifyJwt, removeMediaFiles);
 
 export default router;
 

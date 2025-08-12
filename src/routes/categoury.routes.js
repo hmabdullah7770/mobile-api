@@ -1,11 +1,15 @@
 import {
-    getCatagoury,
+    
+  getPostsByCategory,
+getFollowingUsersPosts ,
+
+  getCatagoury,
     // getCatagourycount,
     getAllCategouryName,
     addCategoury,
     deleteCategoury,
     getFollowingUsersCategoryUltraFast,
-
+      
      // New unified feed imports
   getUnifiedFeed,
 //   getUnifiedFeedLegacy,
@@ -46,6 +50,13 @@ router.route("/unified-feed").get(getUnifiedFeed);
 // Following users unified feed (requires auth)
 router.route("/following-unified-feed").get(VerfyJwt, getFollowingUsersUnifiedFeed);
 
+
+
+router.route('/getfollowingusersposts').get(VerfyJwt,getFollowingUsersPosts);
+router.route('/getpostsbycategory').get(VerfyJwt,getPostsByCategory);
+
+
+router.route()
 
 
 export default router;

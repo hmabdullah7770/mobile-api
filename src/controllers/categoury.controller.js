@@ -4,253 +4,299 @@ import Card from "../models/card.model.js";
 import Categoury from "../models/categoury.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from '../models/user.model.js';
+import {Post} from '../models/post.model.js'
+import mongoose from 'mongoose';
 
-// optimized code
-// 🚀 SUPER OPTIMIZED VERSION - Even faster counting!
-//  (with total count)
-// export const getCatagourycount = asyncHandler(async (req, res) => {
-//   const { categoury, adminpassword, page = 1, limit = 10 } = req.query;
-//   const skip = (parseInt(page) - 1) * parseInt(limit);
-//   const parsedLimit = parseInt(limit);
 
-//   // Input validation
-//   if (!adminpassword) {
-//     throw new ApiError(400, "Admin password is required");
-//   }
+//🚀 getpostByCotegoury 
 
-//   if (adminpassword !== "(Bunny)tota#34#") {
-//     throw new ApiError(403, "Access denied");
-//   }
+export const getPostsByCategory = asyncHandler(async (req, res) => {
+  const { categoury, adminpassword, page , limit  } = req.query;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const parsedLimit = parseInt(limit);
 
-//   if (!categoury) {
-//     throw new ApiError(400, "Category name is required");
-//   }
+  // Input validation
+  if (!adminpassword) {
+    throw new ApiError(400, "Admin password is required");
+  }
 
-//   try {
-//     // 🎯 SOLUTION: Build match condition once
-//     const matchCondition = {};
-//     if (categoury !== 'All') {
-//       matchCondition.category = categoury;
-//     }
-//     // Add other filters if needed
-//     // matchCondition.isPublished = true;
+  if (adminpassword !== "(Bunny)tota#34#") {
+    throw new ApiError(403, "Access denied");
+  }
 
-//     // 🚀 SUPER OPTIMIZED: Single pipeline with smart counting
-//     const pipeline = [
-//       // ✅ EARLY FILTERING (uses index)
-//       ...(Object.keys(matchCondition).length > 0 ? [{ $match: matchCondition }] : []),
-      
-//       // ✅ EARLY SORTING (uses index)
-//       { $sort: { createdAt: -1 } },
-      
-//       // 🔥 SMART FACET - More efficient counting
-//       {
-//         $facet: {
-//           // Get paginated data with expensive operations
-//           data: [
-//             { $skip: skip },
-//             { $limit: parsedLimit },
-//             // Expensive operations ONLY on limited data
-//             {
-//               $lookup: {
-//                 from: "users",
-//                 localField: "owner",
-//                 foreignField: "_id",
-//                 as: "owner",
-//                 pipeline: [
-//                   {
-//                     $project: {
-//                       username: 1,
-//                       email: 1,
-//                       avatar: 1,
-//                       fullName: 1
-//                     }
-//                   }
-//                 ]
-//               }
-//             },
-//             { $unwind: "$owner" },
-//             {
-//               $project: {
-//                   //  ownerDetails: 0 // Remove the array, keeping only the single owner object
-//                 title: 1,
-//                 description: 1,
-//                 category: 1,
-//                 owner: 1,
-//                 createdAt: 1,
-//                 updatedAt: 1,
-//                 thumbnail: 1
-//               }
-//             }
-//           ],
-          
-//           // 🔥 OPTIMIZED COUNTING - Only count, no expensive operations
-//           totalCount: [
-//             { $count: "count" }
-//           ]
-//         }
-//       }
-//     ];
+  if (!categoury) {
+    throw new ApiError(400, "Categoury name is required");
+  }
 
-//     // Execute single optimized query
-//     const result = await Card.aggregate(pipeline);
+  try {
+    // Build match condition
+    const matchCondition = {
+      isPublished: true // Only fetch published posts
+    };
     
-//     const cards = result[0].data;
-//     const totalCount = result[0].totalCount[0]?.count || 0;
+    if (categoury !== 'All') {
+      matchCondition.category = categoury;
+    }
 
-//     if (totalCount === 0 && categoury !== 'All') {
-//       throw new ApiError(404, "Category not found");
-//     }
+    // 🚀 SINGLE ULTRA FAST QUERY
+    const pipeline = [
+      // Early filtering (uses index)
+      { $match: matchCondition },
+      
+      // Early sorting (uses index)
+      { $sort: { createdAt: -1 } },
+      
+      // Skip previous documents
+      { $skip: skip },
+      
+      // Get 1 extra to check if there's next page
+      { $limit: parsedLimit + 1 },
+      
+      // Get owner details
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $project: {
+                username: 1,
+                email: 1,
+                avatar: 1,
+                fullName: 1,
+                 stores: 1
+                 
+              }
+            }
+          ]
+        }
+      },
+      
+      // Unwind owner array
+      { $unwind: "$owner" },
+      
+      // Project required fields
+      {
+        $project: {
+          store: 1,
+          title: 1,
+          description: 1,
+          content: 1,
+          category: 1,
+          thumbnail: 1,
+          imageFiles:1,
+          videoFiles:1,
+          videocount: 1,
+          imagecount: 1,
+          audiocount: 1,
+          pattern:1,
+          song:1,
+          // owner: 1,
 
-//     return res.status(200).json(
-//       new ApiResponse(200, `${categoury === 'All' ? 'All categories' : 'Category'} fetched successfully`, {
-//         cards,
-//         pagination: {
-//           currentPage: parseInt(page),
-//           totalPages: Math.ceil(totalCount / parsedLimit),
-//           totalItems: totalCount,
-//           itemsPerPage: parsedLimit,
-//           hasNextPage: skip + parsedLimit < totalCount,
-//           hasPrevPage: parseInt(page) > 1
-//         }
-//       })
-//     );
+          owner: {
+            _id: "$owner._id",
+            username: "$owner.username",
+            email: "$owner.email",
+            avatar: "$owner.avatar",
+            fullName: "$owner.fullName",
+            stores: { $cond: { if: "$store", then: "$owner.stores", else: "$$REMOVE" } }
+          },
+          createdAt: 1,
+          updatedAt: 1,
+          likes: 1,
+          views: 1,
+          averageRating: 1,
+          isPublished: 1,
 
-//   } catch (error) {
-//     throw new ApiError(500, `Database error: ${error.message}`);
-//   }
-// });
+        }
+      }
+    ];
 
-// 🔥 EVEN MORE OPTIMIZED VERSION - If you want to avoid counting altogether
-// (without totalcount)
-// export const getCatagoury = asyncHandler(async (req, res) => {
-//   const { categoury, adminpassword, page = 1, limit = 10 } = req.query;
-//   const skip = (parseInt(page) - 1) * parseInt(limit);
-//   const parsedLimit = parseInt(limit);
-
-//   // Input validation (same as above)
-//   if (!adminpassword || adminpassword !== "(Bunny)tota#34#" || !categoury) {
-//     throw new ApiError(400, "Invalid request");
-//   }
-
-//   try {
-//     const matchCondition = {};
-//     if (categoury !== 'All') {
-//       matchCondition.category = categoury;
-//     }
-
-//     // 🚀 ULTRA FAST: Get data + check if there's more (no total count)
-//     const pipeline = [
-//       ...(Object.keys(matchCondition).length > 0 ? [{ $match: matchCondition }] : []),
-//       { $sort: { createdAt: -1 } },
-//       { $skip: skip },
-//       { $limit: parsedLimit + 1 }, // Get 1 extra to check if there's next page
-//       {
-//         $lookup: {
-//           from: "users",
-//           localField: "owner",
-//           foreignField: "_id",
-//           as: "owner",
-//           pipeline: [
-//             { $project: { username: 1, email: 1, avatar: 1, fullName: 1 } }
-//           ]
-//         }
-//       },
-//       { $unwind: "$owner" },
-//       {
-//         $project: {
-//           title: 1,
-//           description: 1,
-//           category: 1,
-//           owner: 1,
-//           createdAt: 1,
-//           updatedAt: 1,
-//           thumbnail: 1
-//         }
-//       }
-//     ];
-
-//     const cards = await Card.aggregate(pipeline);
+    // Execute single query
+    const posts = await Post.aggregate(pipeline);
     
-//     // Check if there's more data
-//     const hasNextPage = cards.length > parsedLimit;
-//     if (hasNextPage) {
-//       cards.pop(); // Remove the extra item
-//     }
+    // Check if there's more data
+    const hasNextPage = posts.length > parsedLimit;
+    if (hasNextPage) {
+      posts.pop(); // Remove the extra item
+    }
 
-//     if (cards.length === 0 && categoury !== 'All') {
-//       throw new ApiError(404, "Category not found");
-//     }
+    if (posts.length === 0 && categoury !== 'All') {
+      throw new ApiError(404, "No posts found in this category");
+    }
 
-//     return res.status(200).json(
-//       new ApiResponse(200, `${categoury === 'All' ? 'All categories' : 'Category'} fetched successfully`, {
-//         cards,
-//         pagination: {
-//           currentPage: parseInt(page),
-//           itemsPerPage: parsedLimit,
-//           hasNextPage,
-//           hasPrevPage: parseInt(page) > 1
-//           // No totalPages or totalItems - saves counting time!
-//         }
-//       })
-//     );
+    return res.status(200).json(
+      new ApiResponse(200, `${categoury === 'All' ? 'All categories' : 'Category'} posts fetched successfully`, {
+        posts,
+        pagination: {
+          currentPage: parseInt(page),
+          itemsPerPage: parsedLimit,
+          totalSkip: skip,
+          hasNextPage,
+          hasPrevPage: parseInt(page) > 1
+        }
+      })
+    );
 
-//   } catch (error) {
-//     throw new ApiError(500, `Database error: ${error.message}`);
-//   }
-// });
-
-// 📊 PERFORMANCE COMPARISON:
-
-/*
-🔥 UNDERSTANDING THE COUNTING:
-
-Scenario: 1000 cards total, filtering "shirts" category = 100 cards, page 3, limit 3
-
-❌ OLD WAY:
-1. countDocuments({category: "shirts"}) - scans 100 cards (~10ms)
-2. aggregate() - processes 100 cards with $lookup (~200ms)
-Total: ~210ms
-
-✅ CURRENT OPTIMIZED (your code):
-1. Single aggregate:
-   - $match: filters to 100 cards (fast - uses index)
-   - $sort: sorts 100 cards (fast - uses index) 
-   - $facet:
-     * data: skip(6) + limit(3) + $lookup on 3 cards (~5ms)
-     * count: counts 100 cards (no $lookup, just counting) (~8ms)
-Total: ~13ms
-
-🚀 ULTRA FAST VERSION:
-1. Single aggregate:
-   - $match: filters to 100 cards
-   - $sort: sorts 100 cards
-   - $skip: skips 6 cards
-   - $limit: gets 4 cards (3 + 1 extra)
-   - $lookup: only on 4 cards (~6ms)
-Total: ~6ms (50% faster than optimized!)
-
-The trade-off: No total count, but lightning fast!
-*/
-
-// 🤔 WHICH VERSION TO USE?
-
-/*
-USE FIRST VERSION IF:
-- You need total count for pagination UI
-- You want to show "Page X of Y" 
-- You need "Showing 1-10 of 234 results" 
-
-USE ULTRA FAST VERSION IF:
-- You only need "Next/Previous" buttons
-- Mobile app with infinite scroll
-- Performance is more important than exact counts
-- Netflix/Instagram style pagination (no page numbers)
-*/
+  } catch (error) {
+    throw new ApiError(500, `Database error: ${error.message}`);
+  }
+});
 
 
 
-// 🚀 ULTRA FAST VERSION - No counting, with skipped we are using this now (current)
+//🚀 getfollowing postv By Cotegoury 
+
+
+export const getFollowingUsersPosts= asyncHandler(async (req, res) => {
+  
+  const { category, page, limit  } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const parsedLimit = parseInt(limit);
+    
+    // Get current user ID from JWT token
+    const currentUserId = req.userVerfied._id;
+    
+    // Input validation
+    if (!category) {
+        throw new ApiError(400, "Category name is required");
+    }
+    
+    try {
+        // 🔥 SINGLE MEGA-OPTIMIZED AGGREGATION PIPELINE
+        const pipeline = [
+            // 🚀 STEP 1: Start with Posts collection (indexed on category + createdAt)
+            {
+                $match: category !== 'All' ? { category } : {}
+            },
+            
+            // 🚀 STEP 2: Early sort (uses index - SUPER FAST)
+            { 
+                $sort: { 
+                    createdAt: -1,
+                    _id: -1  // Secondary sort for consistency
+                } 
+            },
+            
+            // 🚀 STEP 3: Lookup to check if post owner is followed by current user
+            {
+                $lookup: {
+                    from: "followlists",
+                    let: { postOwnerId: "$owner" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$follower", currentUserId] },
+                                        { $eq: ["$following", "$$postOwnerId"] }
+                                    ]
+                                }
+                            }
+                        },
+                        { $limit: 1 } // Stop at first match
+                    ],
+                    as: "followCheck"
+                }
+            },
+            
+            // 🚀 STEP 4: Filter - only keep posts from followed users
+            {
+                $match: {
+                    "followCheck.0": { $exists: true }
+                }
+            },
+            
+            // 🚀 STEP 5: Skip + Limit early (before expensive operations)
+            { $skip: skip },
+            { $limit: parsedLimit + 1 }, // +1 to check hasNextPage
+            
+            // 🚀 STEP 6: Get owner details (only for final results)
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "ownerDetails",
+                    pipeline: [
+                        {
+                            $project: {
+                                username: 1,
+                                email: 1,
+                                avatar: 1,
+                                fullName: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            
+            // 🚀 STEP 7: Final projection - FIXED
+            {
+                $project: {
+                    title: 1,
+                    description: 1,
+                    store: 1,
+                    stores:1,
+                    category: 1,
+                    thumbnail: 1,
+                    imageFiles:1,
+                    videoFiles:1,
+                     videocount: 1,
+                      imagecount: 1,
+                     audiocount: 1,
+                     pattern:1,
+                     song:1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    // owner: { $arrayElemAt: ["$ownerDetails", 0] }
+
+                     owner: {
+            _id: "$owner._id",
+            username: "$owner.username",
+            email: "$owner.email",
+            avatar: "$owner.avatar",
+            fullName: "$owner.fullName",
+            stores: { $cond: { if: "$store", then: "$owner.stores", else: "$$REMOVE" } }
+          },
+
+                    // Removed the exclusion fields - they won't appear anyway since we're using inclusion
+                }
+            }
+        ];
+        
+        // Execute single aggregation
+        const posts = await Post.aggregate(pipeline);
+        
+        // Check pagination
+        const hasNextPage = posts.length > parsedLimit;
+        if (hasNextPage) {
+            posts.pop(); // Remove extra item
+        }
+        
+        return res.status(200).json(
+            new ApiResponse(200, `Following users' ${category === 'All' ? 'all categories' : category} posts fetched`, {
+                posts,
+                pagination: {
+                    currentPage: parseInt(page),
+                    itemsPerPage: parsedLimit,
+                    hasNextPage,
+                    hasPrevPage: parseInt(page) > 1
+                }
+            })
+        );
+        
+    } catch (error) {
+        throw new ApiError(500, `Database error: ${error.message}`);
+    }
+});
+
+
+
+
+
 
 // 🚀 ULTRA FAST VERSION - No counting, lightning speed
 export const getCatagoury = asyncHandler(async (req, res) => {
@@ -359,127 +405,6 @@ export const getCatagoury = asyncHandler(async (req, res) => {
 });
 
   
-
-// simple code 
-
- // export const getCatagoury = asyncHandler(async (req, res) => {
-//    const {categoury, adminpassword} = req.query
-
-//    if(!adminpassword){
-//       throw new ApiError(400, "cate code is required")
-//     }
-
-//   if (adminpassword !== "(Bunny)tota#34#") {
-//     throw new ApiError(403, "you dont access the categoury")
-//   }
-
-//    if (!categoury) {
-//         throw new ApiError(402, "Categoury name is required")
-//    }
-   
-//    if(categoury === 'All'){
-//      // Use aggregation for All cards to include owner details
-//      const allcards = await Card.aggregate([
-//        {
-//          $lookup: {
-//            from: "users", // The users collection name
-//            localField: "owner",
-//            foreignField: "_id",
-//            as: "ownerDetails",
-//            pipeline: [
-//              {
-//                $project: {
-//                  username: 1,
-//                  email: 1,
-//                  avatar: 1,
-//                  _id: 1
-//                }
-//              }
-//            ]
-//          }
-//        },
-//        {
-//          $addFields: {
-//            owner: { $arrayElemAt: ["$ownerDetails", 0] }
-//          }
-//        },
-//        {
-//          $project: {
-//            ownerDetails: 0 // Remove the array, keeping only the single owner object
-//          }
-//        },
-//        {
-//          $sort: { createdAt: -1 } // Sort by createdAt in descending order
-//        }
-//      ])
-
-//      return res.status(200).json(
-//        new ApiResponse(201, "All Categoury fetched successfully", allcards)
-//      )
-//    }
-
-//    // For specific category
-//    const existingCategoury = await Card.aggregate([
-//      {
-//        $match: { 
-//          category: categoury 
-//        }
-//      },
-//      {
-//        $lookup: {
-//          from: "users",
-//          localField: "owner",
-//          foreignField: "_id",
-//          as: "ownerDetails",
-//          pipeline: [
-//            {
-//              $project: {
-//                fullName: 1,
-//                email: 1,
-//                avatar: 1,
-//                _id: 1
-//              }
-//            }
-//          ]
-//        }
-//      },
-//      {
-//        $addFields: {
-//          owner: { $arrayElemAt: ["$ownerDetails", 0] }
-//        }
-//      },
-//      {
-//        $project: {
-//          ownerDetails: 0
-//        }
-//      },
-//      {
-//        $sort: { createdAt: -1 } // Sort by createdAt in descending order
-//      }
-//    ])
-
-//    if (!existingCategoury.length) {
-//      throw new ApiError(404, "Categoury not found")
-//    }
-
-//    return res.status(200).json(
-//      new ApiResponse(201, "Categoury fetched successfully", existingCategoury)
-//    )
-// })
-  
-
-
-
-
-// Additional optimization: Create indexes
-// Run these in your MongoDB shell or migration script:
-/*
-db.cards.createIndex({ "category": 1, "createdAt": -1 })
-db.cards.createIndex({ "createdAt": -1 })
-db.cards.createIndex({ "owner": 1 })
-db.users.createIndex({ "_id": 1 })
-*/
-
 
 
 
