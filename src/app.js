@@ -74,6 +74,19 @@ app.use("/api/v1/newcomments", newcommentsRouter)
 
 
 
+// single post
+
+import singlePostRoutes from './routes/singlepost/singlepost.routes.js';
+import singlePostCommentRoutes from './routes/singlepost/singlepostcomment.routes.js';
+import singleCategoryRoutes from './routes/singlepost/singlecategoury.routes.js';
+
+
+// Single post routes
+app.use('/api/v1/singleposts', singlePostRoutes);
+app.use('/api/v1/singlepostcomments', singlePostCommentRoutes);
+app.use('/api/v1/singlepostcategories', singleCategoryRoutes);
+
+
 
 
 
