@@ -17,18 +17,45 @@ const router = express.Router();
 // Get all posts
 router.get("/getall", VerifyJwt, getAllPosts);
 
+// // Create/publish a new post
+// router.post("/create",
+//     VerifyJwt,
+//     upload.fields([
+//         { name: "imageFiles", maxCount: 10 },  // Multiple images
+//         { name: "videoFiles", maxCount: 5 },   // Multiple videos
+//         { name: "audioFiles", maxCount: 5 }, 
+//          { name: "song", maxCount: 6 }  ,  // Multiple audio files
+//         { name: "thumbnail", maxCount: 1 }     // Single thumbnail
+//     ]),
+//     publishPost
+// );
+
+// new for  imagefile1
 // Create/publish a new post
 router.post("/create",
     VerifyJwt,
     upload.fields([
-        { name: "imageFiles", maxCount: 10 },  // Multiple images
-        { name: "videoFiles", maxCount: 5 },   // Multiple videos
+        { name: "imageFile1", maxCount: 1 }, 
+         { name: "imageFile2", maxCount: 1 }, 
+         { name: "imageFile3", maxCount: 1 }, 
+         { name: "imageFile4", maxCount: 1 }, 
+         { name: "imageFile5", maxCount: 1 }, 
+         // Multiple images
+        { name: "videoFile1", maxCount: 1 },   // Multiple videos
+        { name: "videoFile2", maxCount: 1 }, 
+        { name: "videoFile3", maxCount: 1 }, 
+        { name: "videoFile4", maxCount: 1 }, 
+        { name: "videoFile5", maxCount: 1 }, 
+        
         { name: "audioFiles", maxCount: 5 }, 
          { name: "song", maxCount: 6 }  ,  // Multiple audio files
         { name: "thumbnail", maxCount: 1 }     // Single thumbnail
     ]),
     publishPost
 );
+
+
+
 
 // Get a specific post by ID
 router.get("/:postId", VerifyJwt, getPostById);

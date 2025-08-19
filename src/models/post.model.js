@@ -71,12 +71,25 @@ audiocount:{
         type: String,
         required: true
     },
-    size: {
-        type: String,
-        enum: ['L','S'],
-        default: 'L'
+    // size: {
+    //     type: String,
+    //     enum: ['L','S'],
+    //     default: 'L'
+    // }
+    //      ,
+         
+    Imageposition:{
+             type:Number,
+              default: 0,
+
     }
-   
+   ,
+
+    // size: {
+    //     type: String,
+    //     enum: ['L','S'],
+    //     default: 'S'
+    // },
 
     // song:{}
 }],
@@ -87,12 +100,31 @@ videoFiles: [{
         type: String,
         required: true
     },
-    size: {
-        type: String,
-        enum: ['L','S'],
-        default: 'L'
+    // size: {
+    //     type: String,
+    //     enum: ['L','S'],
+    //     default: 'L'
+    // },
+
+     Videoposition:{
+             type:Number,
+              default: 0,
+
+    },
+
+    autoplay: {
+        type: Boolean,
+        default: false 
     },
     
+// size: {
+//         type: String,
+//         enum: ['L','S'],
+//         default: 'S'
+//     },
+
+
+
     // thumbnail :{}
 
     // song:{}
@@ -118,7 +150,7 @@ song:[{
       
       'grid_2x2', // 4 items in 2x2 grid
        
-      'grid_1_1', // 2 horizontal items
+      'double', // 2 horizontal items
 
       'grid_1_2', // 1 large + 2 small (L pattern)
        
@@ -210,6 +242,9 @@ postSchema.index({ isPublished: 1, category: 1, createdAt: -1 });
 postSchema.index({ isPublished: 1, createdAt: -1 });
 
 export const Post = mongoose.model("Post", postSchema);
+
+
+
 
 
 

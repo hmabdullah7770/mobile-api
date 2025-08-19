@@ -257,7 +257,7 @@ const newAddComment = asyncHandler(async (req, res) => {
     if (uploadTasks.length > 0) {
         await Promise.all(uploadTasks);
     }
-
+    
     // Create comment
     const comment = await NewComment.create({
         content: hasText ? content : undefined,
@@ -564,7 +564,7 @@ const newAddReply = asyncHandler(async (req, res) => {
     if (uploadTasks.length > 0) {
         await Promise.all(uploadTasks);
     }
-
+    
     // Create the reply
     const reply = await NewComment.create({
         content: hasText ? content : undefined,

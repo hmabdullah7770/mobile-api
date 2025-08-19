@@ -1,0 +1,1 @@
+write single post with every contrioller for botth sinlge ciomment and single post  and i also comment out some filed in model of single post so i dont want to send it in  so update it and write the routes
