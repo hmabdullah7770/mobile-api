@@ -622,35 +622,35 @@ export const forgetPassword = asyncHandler(async(req,res)=>{
     });
 
     // Send email using nodemailer
-    try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
-        to: email,
-        subject: "Password Reset OTP",
-        text: `Your password reset OTP is ${otp}. It will expire in 20 minutes.`,
-        html: `
-          <div>
-            <h3>Password Reset Request</h3>
-            <p>Your OTP code is: <strong>${otp}</strong></p>
-            <p>This code will expire in 5 minutes.</p>
-          </div>
-        `
-      });
-    } catch (error) {
-     res.json(500,"Failed to send password reset email");
-      // Clean up OTP if email fails
-      await Otp.deleteOne({ email, purpose: 'password_reset' });
-      return res.json(
-         500 ,"Failed to send reset email"
-      );
-    }
+    // try {
+    //   await transporter.sendMail({
+    //     from: process.env.EMAIL_FROM,
+    //     to: email,
+    //     subject: "Password Reset OTP",
+    //     text: `Your password reset OTP is ${otp}. It will expire in 20 minutes.`,
+    //     html: `
+    //       <div>
+    //         <h3>Password Reset Request</h3>
+    //         <p>Your OTP code is: <strong>${otp}</strong></p>
+    //         <p>This code will expire in 5 minutes.</p>
+    //       </div>
+    //     `
+    //   });
+    // } catch (error) {
+    //  res.json(500,"Failed to send password reset email");
+    //   // Clean up OTP if email fails
+    //   await Otp.deleteOne({ email, purpose: 'password_reset' });
+    //   return res.json(
+    //      500 ,"Failed to send reset email"
+    //   );
+    // }
 
 
     return res.status(200).json(
       new ApiResponse(
         201,
       
-        { messege: "OTP sent to your email" }
+        { messege: `OTP sent to your email ${otp}`  }
       )
     );
 });
