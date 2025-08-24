@@ -9,15 +9,15 @@ const ratingSchema = new Schema(
             max: 5,
             required: true
         },
-        contentId: {
+        postId: {
             type: mongoose.Schema.Types.ObjectId,
             required: true
         },
-        contentType: {
-            type: String,
-            enum: ["card", "video"],
-            required: true
-        },
+        // contentType: {
+        //     type: String,
+        //     enum: ["card", "video"],
+        //     required: true
+        // },
         owner: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
