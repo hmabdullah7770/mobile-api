@@ -223,7 +223,11 @@ export const registerUser = asyncHandler(async (req, res) => {
   //console.log("username is:",username.trim(), "email", email.trim());
 
   if (
-    [username, email, password, fullName, gender, age, bio,otp].some((fields) => fields?.trim() == "")
+    [username, email, password,
+      
+      // fullName, gender, age, 
+      
+      bio,otp].some((fields) => fields?.trim() == "")
   ) {
     throw new ApiError(400, "All fields are required some of them are empty");
   }
@@ -264,7 +268,15 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   const avatarLocalpath = req.files.avatar[0].path; //local file path for multer
-  const coverImageLocalpath = req.files.coverImage[0].path;
+
+
+
+  // FIXED: Declare coverImageLocalpath variable
+  let coverImageLocalpath;
+   if (req.files && req.files.coverImage && req.files.coverImage[0]) {
+    coverImageLocalpath = req.files.coverImage[0].path;
+  }
+  // const coverImageLocalpath = req.files.coverImage[0].path;
 
   // let coverImageLocalpath;
   // if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
@@ -276,7 +288,15 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
   const avatar = await uploadResult(avatarLocalpath);
 
-  const coverImage = await uploadResult(coverImageLocalpath);
+  // const coverImage = await uploadResult(coverImageLocalpath);
+
+
+  // FIXED: Only upload cover image if it exists
+  let coverImage;
+  if (coverImageLocalpath) {
+    coverImage = await uploadResult(coverImageLocalpath);
+  }
+
 
   if (!avatar) {
     throw new ApiError(500, "Avatar is not on cloudnary");
@@ -292,7 +312,7 @@ export const registerUser = asyncHandler(async (req, res) => {
   const isExpired = otpRecord.expiresAt < new Date();
 
   if(!isValid){
-    ApiError(
+  throw new   ApiError(
        401,"Invalid Otp please enter the valid otp")}
 
 
@@ -313,7 +333,9 @@ export const registerUser = asyncHandler(async (req, res) => {
     username,
     email,
     avatar: avatar.url,
-    coverImage: coverImage?.url || "",
+    // coverImage: coverImage?.url || "",
+     // Only add coverImage if it exists
+    ...(coverImage ? { coverImage: coverImage.url } : {}),
     password,
     fullName,
     gender,
@@ -352,8 +374,8 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   return res
-    .status(201)
-    .json(new ApiResponse(200, createdUser, "User registered successfully"));
+    .status(200)
+    .json(new ApiResponse(201, createdUser, "User registered successfully"));
 });
 
 export const loginUser = asyncHandler(async (req, res) => {

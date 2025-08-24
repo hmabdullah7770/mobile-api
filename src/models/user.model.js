@@ -33,16 +33,16 @@ const userSchema = new Schema({
     },
     fullName: {
         type: String,
-        required: true,
+        // required: true,
         trim: true,
         index: true
     },
 
-    age:{type: Number , required: true},
+    // age:{type: Number , required: true},
     gender:{
         type: String,
         enum: ['male', 'female', 'transgender', 'other'],
-        required: true,
+        // required: true,
     },
     // addtoFavouret: {
     //     type: mongoose.Schema.Types.ObjectId,
@@ -75,8 +75,12 @@ const userSchema = new Schema({
     },
 
     whatsapp:{
-        type:Number,
-        unique:true,
+       
+       type: String, 
+        
+        // type:Number,
+    //    if we write type number javascript will remove leading zero or + so we use string
+       unique:true,
         sparse: true
     },
      
