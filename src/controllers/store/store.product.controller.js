@@ -82,7 +82,7 @@ export const addProduct = asyncHandler(async (req, res) => {
         // tags
     });
     
-    return res.status(201).json(
+    return res.status(200).json(
         new ApiResponse(201, product, "Product added successfully")
     );
 });
