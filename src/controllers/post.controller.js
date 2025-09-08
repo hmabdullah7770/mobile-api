@@ -8,18 +8,18 @@ import {uploadResult} from "../utils/Claudnary.js"
 import { processSocialLinks } from "../utils/socialLinks.js"
 import Categoury from "../models/categoury.model.js"
 
-// Remove empty media arrays from response objects when counts are zero
-const pruneEmptyMediaFields = (doc) => {
-    if (!doc || typeof doc !== 'object') return doc;
-    const pruned = { ...doc };
-    if ((pruned.imagecount ?? (Array.isArray(pruned.imageFiles) ? pruned.imageFiles.length : 0)) === 0) {
-        delete pruned.imageFiles;
-    }
-    if ((pruned.videocount ?? (Array.isArray(pruned.videoFiles) ? pruned.videoFiles.length : 0)) === 0) {
-        delete pruned.videoFiles;
-    }
-    return pruned;
-};
+// // Remove empty media arrays from response objects when counts are zero
+// const pruneEmptyMediaFields = (doc) => {
+//     if (!doc || typeof doc !== 'object') return doc;
+//     const pruned = { ...doc };
+//     if ((pruned.imagecount ?? (Array.isArray(pruned.imageFiles) ? pruned.imageFiles.length : 0)) === 0) {
+//         delete pruned.imageFiles;
+//     }
+//     if ((pruned.videocount ?? (Array.isArray(pruned.videoFiles) ? pruned.videoFiles.length : 0)) === 0) {
+//         delete pruned.videoFiles;
+//     }
+//     return pruned;
+// };
 
 // Count empty placeholder text entries ("" or "null") for a given multipart text field
 const countPlaceholders = (rawField) => {
@@ -689,6 +689,10 @@ const getPostById = asyncHandler(async (req, res) => {
 // new publishPost  with imageFile1, imageFile2, videoFile1, videoFile2
 
 
+
+
+
+
 // const publishPost = asyncHandler(async (req, res) => {
 //     const { 
 //         title, 
@@ -866,72 +870,392 @@ const getPostById = asyncHandler(async (req, res) => {
 
 //new publishPost with check => autoplay1, autoplay2, autoplay3, autoplay4, autoplay5
 
+// const publishPost = asyncHandler(async (req, res) => {
+//     const { 
+//         title, 
+//         description, 
+//         category, 
+//         store, 
+//         pattern, 
+//         productId,
+//         autoplay1,
+//         autoplay2,
+//         autoplay3,
+//         autoplay4,
+//         autoplay5,
+
+//         ...socialPayload 
+        
+//     } = req.body;
+    
+//     if (!title || !description) throw new ApiError(400, "Title and description are required");
+//     if (!category) throw new ApiError(400, "Category is required");
+
+//     // Validate files structure - now checking for numbered fields
+//     validateNumberedMediaFiles(req.files || {});
+
+//     // Ensure category exists
+//     const categoryExists = await Categoury.findOne({categouryname: category});
+//     if (!categoryExists) await Categoury.create({categouryname: category});
+
+//     const user = await User.findById(req.userVerfied._id);
+//     if (!user) throw new ApiError(404, "User not found");
+
+//     // Video/thumbnail conflict check
+//     const hasVideoFiles = checkForNumberedVideoFiles(req.files);
+//     const hasThumbnail = req.files?.thumbnail && req.files.thumbnail.length > 0;
+//     if (!hasVideoFiles && hasThumbnail) {
+//         throw new ApiError(400, "Cannot upload thumbnail when video files are not present.");
+//     }
+
+//     try {
+//         const socialLinks = processSocialLinks(user, socialPayload);
+
+//         // Initialize upload results
+//         let thumbnailUrl = null;
+//         let imageResults = {}; // Store as {position: url}
+//         let videoResults = {}; // Store as {position: url}
+//         let audioUrls = [];
+//         let songUrls = [];
+
+//         const uploadTasks = [];
+
+//         // Handle thumbnail upload
+//         if (req.files?.thumbnail?.length) {
+//             uploadTasks.push(
+//                 uploadResult(req.files.thumbnail[0].path)
+//                     .then(result => {
+//                         if (!result?.url) throw new Error("Thumbnail upload failed");
+//                         thumbnailUrl = result.url;
+//                     })
+//             );
+//         }
+
+//         // Handle numbered image files (imageFile1, imageFile2, etc.)
+//         for (let i = 1; i <= 5; i++) {
+//             const fieldName = `imageFile${i}`;
+//             if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
+//             uploadTasks.push(
+//                     uploadResult(req.files[fieldName][0].path)
+//                         .then(result => {
+//                             if (!result?.url) throw new Error(`Image file ${i} upload failed`);
+//                             imageResults[i] = result.url;
+//                         })
+//                         .catch(error => {
+//                             throw new ApiError(400, `Image file ${i} upload failed: ${error.message}`);
+//                         })
+//                 );
+//             }
+//         }
+
+//         // Handle numbered video files (videoFile1, videoFile2, etc.)
+//         for (let i = 1; i <= 5; i++) {
+//             const fieldName = `videoFile${i}`;
+//             if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
+//             uploadTasks.push(
+//                     uploadResult(req.files[fieldName][0].path)
+//                         .then(result => {
+//                             if (!result?.url) throw new Error(`Video file ${i} upload failed`);
+//                             videoResults[i] = result.url;
+//                         })
+//                         .catch(error => {
+//                             throw new ApiError(400, `Video file ${i} upload failed: ${error.message}`);
+//                         })
+//                 );
+//             }
+//         }
+
+//         // Handle audio files (keeping original structure)
+//         if (req.files?.audioFiles?.length) {
+//             uploadTasks.push(
+//                 uploadMultipleFiles(req.files.audioFiles, 'audio')
+//                     .then(urls => audioUrls = urls)
+//             );
+//         }
+
+//         // Handle song files (keeping original structure)
+//         if (req.files?.song?.length) {
+//             uploadTasks.push(
+//                 uploadMultipleFiles(req.files.song, 'song')
+//                     .then(urls => songUrls = urls)
+//             );
+//         }
+
+//         // Wait for all uploads to complete
+//         await Promise.all(uploadTasks);
+
+//         // Convert results to arrays with positions
+//         const formattedImageFiles = Object.keys(imageResults)
+//             .sort((a, b) => parseInt(a) - parseInt(b)) // Sort by position number
+//             .map(position => ({
+//                 url: imageResults[position],
+//                 Imageposition: parseInt(position)
+//             }));
+
+//         // helper to parse autoplay values from form-data (accepts "1","true","yes","on" or boolean)
+//         const parseAutoplayFlag = (val) => {
+//             if (val === undefined || val === null) return false;
+//             if (typeof val === 'boolean') return val;
+//             const s = String(val).trim().toLowerCase();
+//             return ['1', 'true', 'yes', 'on'].includes(s);
+//         };
+
+//         // autoplay1..autoplay5 are destructured from req.body at top of publishPost
+//         const autoplayFlags = { 1: autoplay1, 2: autoplay2, 3: autoplay3, 4: autoplay4, 5: autoplay5 };
+
+//         const formattedVideoFiles = Object.keys(videoResults)
+//             .sort((a, b) => parseInt(a) - parseInt(b)) // Sort by position number
+//             .map(position => ({
+//                 url: videoResults[position],
+//                 Videoposition: parseInt(position),
+//                 autoplay: parseAutoplayFlag(autoplayFlags[position])
+//             }));
+
+//         // Create post data
+//         const postData = {
+//             title,
+//             description,
+//             category,
+//             productId,
+//             thumbnail: thumbnailUrl || undefined,
+//             audioFile: audioUrls.length > 0 ? audioUrls[0] : undefined,
+//             song: songUrls.length > 0 ? songUrls[0] : undefined,
+//             imagecount: formattedImageFiles.length,
+//             videocount: formattedVideoFiles.length,
+//             audiocount: audioUrls.length,
+//             pattern: pattern || 'single',
+//             owner: user._id,
+//             store: Boolean(store),
+//             ...socialLinks.socialLinks
+//         };
+
+//         // Add media arrays only if they have content
+//         if (formattedImageFiles.length > 0) postData.imageFiles = formattedImageFiles;
+//         if (formattedVideoFiles.length > 0) postData.videoFiles = formattedVideoFiles;
+
+//         // Remove undefined fields
+//         Object.keys(postData).forEach(key => {
+//             if (postData[key] === undefined) {
+//                 delete postData[key];
+//             }
+//         });
+
+//         const post = await Post.create(postData);
+
+//         // Populate owner details for response
+//         const populatedPost = await Post.findById(post._id)
+//             .populate('owner', 'username fullName avatar')
+//             .lean();
+
+//         return res.status(200).json(
+//             new ApiResponse(201, pruneEmptyMediaFields(populatedPost), "Post created successfully")
+//         );
+//     } catch (error) {
+//         handleSocialLinkError(error);
+//     }
+// });
+
+// // Helper function to validate numbered media files
+// const validateNumberedMediaFiles = (files) => {
+//     const errors = [];
+    
+//     // Check for invalid numbered fields beyond the expected range
+//     Object.keys(files).forEach(key => {
+//         if (key.startsWith('imageFile')) {
+//             const num = key.replace('imageFile', '');
+//             if (!/^[1-5]$/.test(num)) {
+//                 errors.push(`Invalid image field: ${key}. Only imageFile1 to imageFile5 are allowed`);
+//             }
+//         }
+//         if (key.startsWith('videoFile')) {
+//             const num = key.replace('videoFile', '');
+//             if (!/^[1-5]$/.test(num)) {
+//                 errors.push(`Invalid video field: ${key}. Only videoFile1 to videoFile5 are allowed`);
+//             }
+//         }
+//     });
+    
+//     if (errors.length > 0) {
+//         throw new ApiError(400, errors.join(", "));
+//     }
+// };
+
+// Helper function to check for numbered video files
+// const checkForNumberedVideoFiles = (files) => {
+//     if (!files) return false;
+    
+//     for (let i = 1; i <= 5; i++) {
+//         const fieldName = `videoFile${i}`;
+//         if (files[fieldName] && files[fieldName].length > 0) {
+//             return true;
+//         }
+//     }
+//     return false;
+// };
+
+
+// latest with ffmpeg 
+
+
+import ffmpeg from 'fluent-ffmpeg';
+import path from 'path';
+import fs from 'fs';
+import { promisify } from 'util';
+
+// Promisify fs operations
+const unlink = promisify(fs.unlink);
+const access = promisify(fs.access);
+
+// FFmpeg thumbnail generation middleware/utility
+const generateVideoThumbnail = async (videoPath, outputPath, timeSeek = '50%') => {
+    return new Promise((resolve, reject) => {
+        ffmpeg(videoPath)
+            .screenshots({
+                timestamps: [timeSeek],
+                filename: path.basename(outputPath),
+                folder: path.dirname(outputPath),
+                size: '640x480'
+            })
+            .on('end', () => {
+                resolve(outputPath);
+            })
+            .on('error', (err) => {
+                reject(new Error(`Thumbnail generation failed: ${err.message}`));
+            });
+    });
+};
+
+// Generate post URL from video center frame
+const generatePostUrl = async (videoPath) => {
+    const tempThumbnailPath = `${videoPath}_temp_thumb.jpg`;
+    
+    try {
+        await generateVideoThumbnail(videoPath, tempThumbnailPath, '50%');
+        
+        // Upload the generated thumbnail to cloudinary
+        const uploadResult = await uploadResult(tempThumbnailPath);
+        
+        // Clean up temp file
+        try {
+            await unlink(tempThumbnailPath);
+        } catch (cleanupError) {
+            console.warn('Failed to cleanup temp thumbnail:', cleanupError.message);
+        }
+        
+        return uploadResult?.url || null;
+    } catch (error) {
+        console.error('Post URL generation failed:', error.message);
+        return null;
+    }
+};
+
+
 const publishPost = asyncHandler(async (req, res) => {
     const { 
         title, 
         description, 
         category, 
-        store, 
-        pattern, 
-        productId,
+        pattern,
+        
+        // Store data
+        storeisActive,
+        storeIconSize,
+        storeId,
+        storeUrl,
+        
+        // Product data
+        productisActive,
+        productIconSize,
+        ProductId,
+        productUrl,
+        
+        // Video autoplay flags
         autoplay1,
         autoplay2,
         autoplay3,
         autoplay4,
         autoplay5,
 
+        // New URL fields
+        facebookurl,
+        instagramurl,
+        whatsappnumberurl,
+        storelinkurl,
+
         ...socialPayload 
         
     } = req.body;
     
+    // STEP 1: VALIDATE ALL INPUT DATA FIRST (BEFORE ANY UPLOADS)
     if (!title || !description) throw new ApiError(400, "Title and description are required");
     if (!category) throw new ApiError(400, "Category is required");
 
     // Validate files structure - now checking for numbered fields
     validateNumberedMediaFiles(req.files || {});
 
-    // Ensure category exists
-    const categoryExists = await Categoury.findOne({categouryname: category});
-    if (!categoryExists) await Categoury.create({categouryname: category});
-
     const user = await User.findById(req.userVerfied._id);
     if (!user) throw new ApiError(404, "User not found");
 
-    // Video/thumbnail conflict check
-    const hasVideoFiles = checkForNumberedVideoFiles(req.files);
-    const hasThumbnail = req.files?.thumbnail && req.files.thumbnail.length > 0;
-    if (!hasVideoFiles && hasThumbnail) {
-        throw new ApiError(400, "Cannot upload thumbnail when video files are not present.");
+    // Helper function to check if value is true (handles both boolean and string)
+    const isTrue = (val) => {
+        return val === true || val === 'true' || val === '1';
+    };
+
+    // STEP 2: VALIDATE SOCIAL MEDIA LOGIC BEFORE UPLOADS
+    // Facebook validation
+    if (isTrue(socialPayload.facebook) && facebookurl) {
+        throw new ApiError(400, "Cannot provide both facebook=true and facebookurl. Choose one.");
+    }
+    
+    // Instagram validation  
+    if (isTrue(socialPayload.instagram) && instagramurl) {
+        throw new ApiError(400, "Cannot provide both instagram=true and instagramurl. Choose one.");
+    }
+    
+    // WhatsApp validation
+    if (isTrue(socialPayload.whatsapp) && whatsappnumberurl) {
+        throw new ApiError(400, "Cannot provide both whatsapp=true and whatsappnumberurl. Choose one.");
+    }
+    
+    // Store link validation
+    if (isTrue(socialPayload.storeLink) && storelinkurl) {
+        throw new ApiError(400, "Cannot provide both storeLink=true and storelinkurl. Choose one.");
     }
 
+    // STEP 3: VALIDATE SOCIAL LINKS STRUCTURE
+    let socialLinks = { socialLinks: {} };
     try {
-        const socialLinks = processSocialLinks(user, socialPayload);
+        socialLinks = processSocialLinks(user, socialPayload);
+    } catch (socialError) {
+        // If the only error is "At least one social link required", ignore it for posts
+        if (socialError.message === "At least one social link required") {
+            socialLinks = { socialLinks: {} };
+        } else {
+            // Re-throw other social link errors (like missing profile data)
+            throw socialError;
+        }
+    }
 
+    // Ensure category exists (this is a quick DB operation)
+    const categoryExists = await Categoury.findOne({categouryname: category});
+    if (!categoryExists) await Categoury.create({categouryname: category});
+
+    // STEP 4: NOW START FILE UPLOADS (ONLY AFTER ALL VALIDATIONS PASS)
+    try {
         // Initialize upload results
-        let thumbnailUrl = null;
         let imageResults = {}; // Store as {position: url}
-        let videoResults = {}; // Store as {position: url}
+        let videoResults = {}; // Store as {position: {url, thumbnail, posturl}}
+        let thumbnailResults = {}; // Store thumbnails by position
         let audioUrls = [];
         let songUrls = [];
 
         const uploadTasks = [];
 
-        // Handle thumbnail upload
-        if (req.files?.thumbnail?.length) {
-            uploadTasks.push(
-                uploadResult(req.files.thumbnail[0].path)
-                    .then(result => {
-                        if (!result?.url) throw new Error("Thumbnail upload failed");
-                        thumbnailUrl = result.url;
-                    })
-            );
-        }
-
         // Handle numbered image files (imageFile1, imageFile2, etc.)
         for (let i = 1; i <= 5; i++) {
             const fieldName = `imageFile${i}`;
             if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
-            uploadTasks.push(
+                uploadTasks.push(
                     uploadResult(req.files[fieldName][0].path)
                         .then(result => {
                             if (!result?.url) throw new Error(`Image file ${i} upload failed`);
@@ -944,15 +1268,67 @@ const publishPost = asyncHandler(async (req, res) => {
             }
         }
 
+        // Handle numbered thumbnail files (thumbnail1, thumbnail2, etc.)
+        for (let i = 1; i <= 5; i++) {
+            const fieldName = `thumbnail${i}`;
+            if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
+                uploadTasks.push(
+                    uploadResult(req.files[fieldName][0].path)
+                        .then(result => {
+                            if (!result?.url) throw new Error(`Thumbnail ${i} upload failed`);
+                            thumbnailResults[i] = result.url;
+                        })
+                        .catch(error => {
+                            throw new ApiError(400, `Thumbnail ${i} upload failed: ${error.message}`);
+                        })
+                );
+            }
+        }
+
         // Handle numbered video files (videoFile1, videoFile2, etc.)
         for (let i = 1; i <= 5; i++) {
             const fieldName = `videoFile${i}`;
             if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
-            uploadTasks.push(
+                uploadTasks.push(
                     uploadResult(req.files[fieldName][0].path)
-                        .then(result => {
+                        .then(async (result) => {
                             if (!result?.url) throw new Error(`Video file ${i} upload failed`);
-                            videoResults[i] = result.url;
+                            
+                            const videoData = {
+                                url: result.url,
+                                thumbnail: null,
+                                posturl: null
+                            };
+
+                            // Handle thumbnail: use user-provided or generate if not provided
+                            if (thumbnailResults[i]) {
+                                // User provided thumbnail - use it
+                                videoData.thumbnail = thumbnailResults[i];
+                            } else {
+                                // No user thumbnail - generate one using ffmpeg
+                                try {
+                                    const generatedThumbnail = await generatePostUrl(req.files[fieldName][0].path);
+                                    if (generatedThumbnail) {
+                                        videoData.thumbnail = generatedThumbnail;
+                                    }
+                                } catch (thumbError) {
+                                    console.warn(`Failed to generate thumbnail for video ${i}:`, thumbError.message);
+                                }
+                            }
+
+                            // Generate post URL only if user didn't provide thumbnail for this video
+                            if (!thumbnailResults[i]) {
+                                try {
+                                    const postUrl = await generatePostUrl(req.files[fieldName][0].path);
+                                    if (postUrl) {
+                                        videoData.posturl = postUrl;
+                                    }
+                                } catch (postUrlError) {
+                                    console.warn(`Failed to generate post URL for video ${i}:`, postUrlError.message);
+                                }
+                            }
+
+                            videoResults[i] = videoData;
                         })
                         .catch(error => {
                             throw new ApiError(400, `Video file ${i} upload failed: ${error.message}`);
@@ -982,13 +1358,13 @@ const publishPost = asyncHandler(async (req, res) => {
 
         // Convert results to arrays with positions
         const formattedImageFiles = Object.keys(imageResults)
-            .sort((a, b) => parseInt(a) - parseInt(b)) // Sort by position number
+            .sort((a, b) => parseInt(a) - parseInt(b))
             .map(position => ({
                 url: imageResults[position],
                 Imageposition: parseInt(position)
             }));
 
-        // helper to parse autoplay values from form-data (accepts "1","true","yes","on" or boolean)
+        // Helper to parse autoplay values from form-data
         const parseAutoplayFlag = (val) => {
             if (val === undefined || val === null) return false;
             if (typeof val === 'boolean') return val;
@@ -996,38 +1372,118 @@ const publishPost = asyncHandler(async (req, res) => {
             return ['1', 'true', 'yes', 'on'].includes(s);
         };
 
-        // autoplay1..autoplay5 are destructured from req.body at top of publishPost
-        const autoplayFlags = { 1: autoplay1, 2: autoplay2, 3: autoplay3, 4: autoplay4, 5: autoplay5 };
+        // Parse autoplay flags
+        const autoplayFlags = { 
+            1: autoplay1, 
+            2: autoplay2, 
+            3: autoplay3, 
+            4: autoplay4, 
+            5: autoplay5 
+        };
 
+        // Format video files with all metadata
         const formattedVideoFiles = Object.keys(videoResults)
-            .sort((a, b) => parseInt(a) - parseInt(b)) // Sort by position number
-            .map(position => ({
-                url: videoResults[position],
-                Videoposition: parseInt(position),
-                autoplay: parseAutoplayFlag(autoplayFlags[position])
-            }));
+            .sort((a, b) => parseInt(a) - parseInt(b))
+            .map(position => {
+                const videoData = videoResults[position];
+                const formattedVideo = {
+                    url: videoData.url,
+                    Videoposition: parseInt(position),
+                    autoplay: parseAutoplayFlag(autoplayFlags[position])
+                };
+
+                // Add thumbnail if available
+                if (videoData.thumbnail) {
+                    formattedVideo.thumbnail = videoData.thumbnail;
+                }
+
+                // Add post URL if available
+                if (videoData.posturl) {
+                    formattedVideo.posturl = videoData.posturl;
+                }
+
+                return formattedVideo;
+            });
+
+        // Format store data
+        const storeData = [];
+        if (storeisActive || storeId || storeUrl) {
+            storeData.push({
+                storeisActive: Boolean(storeisActive),
+                storeIconSize: storeIconSize || 'L',
+                storeId: storeId || undefined,
+                storeUrl: storeUrl || undefined
+            });
+        }
+
+        // Format product data
+        const productData = [];
+        if (productisActive || ProductId || productUrl) {
+            productData.push({
+                productisActive: Boolean(productisActive),
+                productIconSize: productIconSize || 'S',
+                ProductId: ProductId || undefined,
+                productUrl: productUrl || undefined
+            });
+        }
+
+        // Handle new URL fields with conditions (validation already done above)
+        const urlFields = {};
+        
+        // Facebook logic - if facebook is true, use user's profile data; if not true, save URL
+        if (isTrue(socialPayload.facebook)) {
+            // Use the user's facebook from their profile (processed by processSocialLinks)
+            // The socialLinks already contains the correct facebook value from user profile
+        } else if (facebookurl) {
+            urlFields.facebookurl = facebookurl;
+        }
+        
+        // Instagram logic - if instagram is true, use user's profile data; if not true, save URL  
+        if (isTrue(socialPayload.instagram)) {
+            // Use the user's instagram from their profile (processed by processSocialLinks)
+            // The socialLinks already contains the correct instagram value from user profile
+        } else if (instagramurl) {
+            urlFields.instagramurl = instagramurl;
+        }
+        
+        // WhatsApp logic - if whatsapp is true, use user's profile data; if not true, save URL
+        if (isTrue(socialPayload.whatsapp)) {
+            // Use the user's whatsapp number from their profile (processed by processSocialLinks)
+            // The socialLinks already contains the correct whatsapp number from user profile
+            // Don't add anything to urlFields - let processSocialLinks handle it
+        } else if (whatsappnumberurl) {
+            urlFields.whatsappnumberurl = whatsappnumberurl;
+        }
+        
+        // Store link logic - if storeLink is true, use user's profile data; if not true, save URL
+        if (isTrue(socialPayload.storeLink)) {
+            // Use the user's storeLink from their profile (processed by processSocialLinks)
+            // The socialLinks already contains the correct storeLink value from user profile
+        } else if (storelinkurl) {
+            urlFields.storelinkurl = storelinkurl;
+        }
 
         // Create post data
         const postData = {
             title,
             description,
             category,
-            productId,
-            thumbnail: thumbnailUrl || undefined,
             audioFile: audioUrls.length > 0 ? audioUrls[0] : undefined,
-            song: songUrls.length > 0 ? songUrls[0] : undefined,
+            song: songUrls.length > 0 ? songUrls : undefined,
             imagecount: formattedImageFiles.length,
             videocount: formattedVideoFiles.length,
             audiocount: audioUrls.length,
             pattern: pattern || 'single',
             owner: user._id,
-            store: Boolean(store),
-            ...socialLinks.socialLinks
+            ...socialLinks.socialLinks,
+            ...urlFields  // Add the conditional URL fields
         };
 
-        // Add media arrays only if they have content
+        // Add arrays only if they have content
         if (formattedImageFiles.length > 0) postData.imageFiles = formattedImageFiles;
         if (formattedVideoFiles.length > 0) postData.videoFiles = formattedVideoFiles;
+        if (storeData.length > 0) postData.store = storeData;
+        if (productData.length > 0) postData.product = productData;
 
         // Remove undefined fields
         Object.keys(postData).forEach(key => {
@@ -1041,12 +1497,15 @@ const publishPost = asyncHandler(async (req, res) => {
         // Populate owner details for response
         const populatedPost = await Post.findById(post._id)
             .populate('owner', 'username fullName avatar')
+            .populate('store.storeId')
+            .populate('product.ProductId')
             .lean();
 
         return res.status(200).json(
             new ApiResponse(201, pruneEmptyMediaFields(populatedPost), "Post created successfully")
         );
     } catch (error) {
+        console.error('Post creation error:', error);
         handleSocialLinkError(error);
     }
 });
@@ -1069,6 +1528,12 @@ const validateNumberedMediaFiles = (files) => {
                 errors.push(`Invalid video field: ${key}. Only videoFile1 to videoFile5 are allowed`);
             }
         }
+        if (key.startsWith('thumbnail')) {
+            const num = key.replace('thumbnail', '');
+            if (!/^[1-5]$/.test(num)) {
+                errors.push(`Invalid thumbnail field: ${key}. Only thumbnail1 to thumbnail5 are allowed`);
+            }
+        }
     });
     
     if (errors.length > 0) {
@@ -1088,6 +1553,44 @@ const checkForNumberedVideoFiles = (files) => {
     }
     return false;
 };
+
+// Enhanced pruning function to handle new structure
+const pruneEmptyMediaFields = (post) => {
+    if (!post) return post;
+
+    // Remove empty arrays
+    if (post.imageFiles && post.imageFiles.length === 0) delete post.imageFiles;
+    if (post.videoFiles && post.videoFiles.length === 0) delete post.videoFiles;
+    if (post.store && post.store.length === 0) delete post.store;
+    if (post.product && post.product.length === 0) delete post.product;
+    if (post.song && post.song.length === 0) delete post.song;
+
+    // Clean store array - remove objects with all falsy values
+    if (post.store) {
+        post.store = post.store.filter(store => 
+            store.storeisActive || store.storeId || store.storeUrl || store.storeIconSize
+        );
+        if (post.store.length === 0) delete post.store;
+    }
+
+    // Clean product array - remove objects with all falsy values
+    if (post.product) {
+        post.product = post.product.filter(product => 
+            product.productisActive || product.ProductId || product.productUrl
+        );
+        if (post.product.length === 0) delete post.product;
+    }
+
+    return post;
+};
+
+
+
+
+
+
+
+
 
 
 

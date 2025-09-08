@@ -2,23 +2,113 @@
 import mongoose, { Schema } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 import { NewComment } from "./newcomment.model.js";
+import { type } from "os";
 
 const postSchema = new Schema({
    
 
-      store: {
-        type: Boolean,
+    //   store: {
+    //     type: Boolean,
         
-        default: false
-    },
-   
-   productId:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Store_Product",
-        // required: false
+    //     default: false
+    // },
+    // storeUrl:{
+    //     type: String,
+    // },
+
+
+
+    store: [{
+            
+         storeisActive: {
+            type: Boolean,
+            default: false
+        },
+
+
+        storeIconSize:{
+          
+            type: String,
+            enum: ['L','S'],
+            default: 'L'
+
+        },
+
+        storeId: {
+            type: String ,
+        },
+
+        
+       
+         storeUrl:{
+        type: String,
     },
 
-   
+
+         default:[]
+    }],
+
+
+
+
+    facebookurl:{
+        type: String,
+    }
+,
+    instagramurl:{
+      type: String,
+    }
+ 
+    ,
+    whatsappnumberurl:{
+      type: String,
+    },
+    storelinkurl:{
+
+       type: String,
+    },
+//    productId:{
+//         type: mongoose.Schema.Types.ObjectId,
+//         ref: "Store_Product",
+//         // required: false
+//     },
+
+//    productUrl:{
+//         type: String,
+//    },
+
+
+
+ product: [{
+            
+         productisActive: {
+            type: Boolean,
+            default: false
+        },
+
+
+        productIconSize:{
+          
+            type: String,
+            enum: ['L','S'],
+            default: 'S'
+
+        },
+
+        ProductId: {
+            type: String ,
+        },
+
+        
+       
+         productUrl:{
+        type: String,
+    },
+
+
+         default:[]
+    }],
+
 
 
    videocount:{
@@ -61,10 +151,11 @@ audiocount:{
         ref: "User",
         required: true
     },
-    thumbnail: {
-        type: String,
-        // required: true
-    },
+    
+    // thumbnail: {
+    //     type: String,
+    //     // required: true
+    // },
 
     imageFiles: [{
     url: {
@@ -117,6 +208,18 @@ videoFiles: [{
         default: false 
     },
     
+    thumbnail:{
+        type: String,
+    }
+
+    ,
+
+    posturl:{
+        type:String,
+    }
+
+
+         
 // size: {
 //         type: String,
 //         enum: ['L','S'],
@@ -176,7 +279,7 @@ song:[{
         default: true
     },
     whatsapp: {
-        type: Number
+        type: String
     },
     storeLink: {
         type: String

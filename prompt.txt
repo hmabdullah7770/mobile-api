@@ -1,1 +1,6 @@
 write single post with every contrioller for botth sinlge ciomment and single post  and i also comment out some filed in model of single post so i dont want to send it in  so update it and write the routes
+
+
+
+
+prompt 3: post.model ==>    previosly we have store  and store url and now we send but now we send more things  like storeisactive , storeul , storeiconsize , same for product i implement the the post model some chage prviosly there is for post we only send video and it postion but now we change it we add thumbnail and  posturl see the constoller is not updated previousely so udate it acording to not if we have multiple thumbnail for first vedio in req we send thumbnail1 , for second thumbnail2  and same as post url if the tumbail for the respective  video is not exist then    use   ffmpeg  as if the use not upload thumbnail of video to create a post url   from the mid or center of the video so we see it   and whrite it whit the respective video like posturl1  for first and posturl2 for second  the posturl should automatcailly analize which posturl2, or posturl3 to send so with respective we get in response analize when the person not send thumbail for that   you know how to use ffmpeg is as a middleware or other way how to use it batter you know so use that way and improve the controller  ==>
