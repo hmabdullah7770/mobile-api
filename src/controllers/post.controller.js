@@ -1149,6 +1149,7 @@ const generatePostUrl = async (videoPath) => {
     }
 };
 
+
 const publishPost = asyncHandler(async (req, res) => {
     const { 
         title, 
@@ -1175,26 +1176,72 @@ const publishPost = asyncHandler(async (req, res) => {
         autoplay4,
         autoplay5,
 
+        // New URL fields
+        facebookurl,
+        instagramurl,
+        whatsappnumberurl,
+        storelinkurl,
+
         ...socialPayload 
         
     } = req.body;
     
+    // STEP 1: VALIDATE ALL INPUT DATA FIRST (BEFORE ANY UPLOADS)
     if (!title || !description) throw new ApiError(400, "Title and description are required");
     if (!category) throw new ApiError(400, "Category is required");
 
     // Validate files structure - now checking for numbered fields
     validateNumberedMediaFiles(req.files || {});
 
-    // Ensure category exists
-    const categoryExists = await Categoury.findOne({categouryname: category});
-    if (!categoryExists) await Categoury.create({categouryname: category});
-
     const user = await User.findById(req.userVerfied._id);
     if (!user) throw new ApiError(404, "User not found");
 
-    try {
-        const socialLinks = processSocialLinks(user, socialPayload);
+    // Helper function to check if value is true (handles both boolean and string)
+    const isTrue = (val) => {
+        return val === true || val === 'true' || val === '1';
+    };
 
+    // STEP 2: VALIDATE SOCIAL MEDIA LOGIC BEFORE UPLOADS
+    // Facebook validation
+    if (isTrue(socialPayload.facebook) && facebookurl) {
+        throw new ApiError(400, "Cannot provide both facebook=true and facebookurl. Choose one.");
+    }
+    
+    // Instagram validation  
+    if (isTrue(socialPayload.instagram) && instagramurl) {
+        throw new ApiError(400, "Cannot provide both instagram=true and instagramurl. Choose one.");
+    }
+    
+    // WhatsApp validation
+    if (isTrue(socialPayload.whatsapp) && whatsappnumberurl) {
+        throw new ApiError(400, "Cannot provide both whatsapp=true and whatsappnumberurl. Choose one.");
+    }
+    
+    // Store link validation
+    if (isTrue(socialPayload.storeLink) && storelinkurl) {
+        throw new ApiError(400, "Cannot provide both storeLink=true and storelinkurl. Choose one.");
+    }
+
+    // STEP 3: VALIDATE SOCIAL LINKS STRUCTURE
+    let socialLinks = { socialLinks: {} };
+    try {
+        socialLinks = processSocialLinks(user, socialPayload);
+    } catch (socialError) {
+        // If the only error is "At least one social link required", ignore it for posts
+        if (socialError.message === "At least one social link required") {
+            socialLinks = { socialLinks: {} };
+        } else {
+            // Re-throw other social link errors (like missing profile data)
+            throw socialError;
+        }
+    }
+
+    // Ensure category exists (this is a quick DB operation)
+    const categoryExists = await Categoury.findOne({categouryname: category});
+    if (!categoryExists) await Categoury.create({categouryname: category});
+
+    // STEP 4: NOW START FILE UPLOADS (ONLY AFTER ALL VALIDATIONS PASS)
+    try {
         // Initialize upload results
         let imageResults = {}; // Store as {position: url}
         let videoResults = {}; // Store as {position: {url, thumbnail, posturl}}
@@ -1380,6 +1427,42 @@ const publishPost = asyncHandler(async (req, res) => {
             });
         }
 
+        // Handle new URL fields with conditions (validation already done above)
+        const urlFields = {};
+        
+        // Facebook logic - if facebook is true, use user's profile data; if not true, save URL
+        if (isTrue(socialPayload.facebook)) {
+            // Use the user's facebook from their profile (processed by processSocialLinks)
+            // The socialLinks already contains the correct facebook value from user profile
+        } else if (facebookurl) {
+            urlFields.facebookurl = facebookurl;
+        }
+        
+        // Instagram logic - if instagram is true, use user's profile data; if not true, save URL  
+        if (isTrue(socialPayload.instagram)) {
+            // Use the user's instagram from their profile (processed by processSocialLinks)
+            // The socialLinks already contains the correct instagram value from user profile
+        } else if (instagramurl) {
+            urlFields.instagramurl = instagramurl;
+        }
+        
+        // WhatsApp logic - if whatsapp is true, use user's profile data; if not true, save URL
+        if (isTrue(socialPayload.whatsapp)) {
+            // Use the user's whatsapp number from their profile (processed by processSocialLinks)
+            // The socialLinks already contains the correct whatsapp number from user profile
+            // Don't add anything to urlFields - let processSocialLinks handle it
+        } else if (whatsappnumberurl) {
+            urlFields.whatsappnumberurl = whatsappnumberurl;
+        }
+        
+        // Store link logic - if storeLink is true, use user's profile data; if not true, save URL
+        if (isTrue(socialPayload.storeLink)) {
+            // Use the user's storeLink from their profile (processed by processSocialLinks)
+            // The socialLinks already contains the correct storeLink value from user profile
+        } else if (storelinkurl) {
+            urlFields.storelinkurl = storelinkurl;
+        }
+
         // Create post data
         const postData = {
             title,
@@ -1392,7 +1475,8 @@ const publishPost = asyncHandler(async (req, res) => {
             audiocount: audioUrls.length,
             pattern: pattern || 'single',
             owner: user._id,
-            ...socialLinks.socialLinks
+            ...socialLinks.socialLinks,
+            ...urlFields  // Add the conditional URL fields
         };
 
         // Add arrays only if they have content

@@ -50,9 +50,23 @@ const postSchema = new Schema({
 
 
 
-    
 
+    facebookurl:{
+        type: String,
+    }
+,
+    instagramurl:{
+      type: String,
+    }
+ 
+    ,
+    whatsappnumberurl:{
+      type: String,
+    },
+    storelinkurl:{
 
+       type: String,
+    },
 //    productId:{
 //         type: mongoose.Schema.Types.ObjectId,
 //         ref: "Store_Product",
@@ -265,7 +279,7 @@ song:[{
         default: true
     },
     whatsapp: {
-        type: Number
+        type: String
     },
     storeLink: {
         type: String
