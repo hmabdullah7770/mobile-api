@@ -7,6 +7,9 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadResult} from "../utils/Claudnary.js"
 import { processSocialLinks } from "../utils/socialLinks.js"
 import Categoury from "../models/categoury.model.js"
+// Add this import at the top of post.controller.js
+import { progressStore } from "../utils/progressStore.js";
+
 
 // // Remove empty media arrays from response objects when counts are zero
 // const pruneEmptyMediaFields = (doc) => {
@@ -270,427 +273,62 @@ const getPostById = asyncHandler(async (req, res) => {
 
 
 
-// Create new post
 
-// const publishPost = asyncHandler(async (req, res) => {
-//     const { 
-//         title, 
-//         description, 
-//         category, 
-//         store, 
-//         pattern, 
-//         productId,
-//         // imageSizes, // Array of sizes for images
-//         // videoSizes, // Array of sizes for videos
-//         ...socialPayload 
-//     } = req.body;
+
+// latest with ffmpeg 
+
+
+// import ffmpeg from 'fluent-ffmpeg';
+// import path from 'path';
+// import fs from 'fs';
+// import { promisify } from 'util';
+
+// // Promisify fs operations
+// const unlink = promisify(fs.unlink);
+// const access = promisify(fs.access);
+
+// // FFmpeg thumbnail generation middleware/utility
+// const generateVideoThumbnail = async (videoPath, outputPath, timeSeek = '50%') => {
+//     return new Promise((resolve, reject) => {
+//         ffmpeg(videoPath)
+//             .screenshots({
+//                 timestamps: [timeSeek],
+//                 filename: path.basename(outputPath),
+//                 folder: path.dirname(outputPath),
+//                 size: '640x480'
+//             })
+//             .on('end', () => {
+//                 resolve(outputPath);
+//             })
+//             .on('error', (err) => {
+//                 reject(new Error(`Thumbnail generation failed: ${err.message}`));
+//             });
+//     });
+// };
+
+// // Generate post URL from video center frame
+// const generatePostUrl = async (videoPath) => {
+//     const tempThumbnailPath = `${videoPath}_temp_thumb.jpg`;
     
-//     if (!title || !description) {
-//         throw new ApiError(400, "Title and description are required");
-//     }
-
-//     if (!category) {
-//         throw new ApiError(400, "Category is required");
-//     }
-
-//     // Validate files structure
-//     validateMediaFiles(req.files || {});
-
-//     // Check if category exists, create if not
-//     const categoryExists = await Categoury.findOne({categouryname: category});
-//     if (!categoryExists) {  
-//         await Categoury.create({categouryname: category});
-//     }
-
-//     const user = await User.findById(req.userVerfied._id);
-//     if (!user) throw new ApiError(404, "User not found");
-
-//     // Validation: Check for video files and thumbnail conflict
-//     const hasVideoFiles = req.files?.videoFiles && req.files.videoFiles.length > 0;
-//     const hasThumbnail = req.files?.thumbnail && req.files.thumbnail.length > 0;
-    
-//     if (!hasVideoFiles && hasThumbnail) {
-//         throw new ApiError(400, "Cannot upload thumbnail when video files are not present. Video posts don't require thumbnails.");
-//     }
-
 //     try {
-//         // Process social links for creation
-//         const socialLinks = processSocialLinks(user, socialPayload);
-
-//         // Initialize upload results
-//         let thumbnailUrl = null;
-//         let imageUrls = [];
-//         let videoUrls = [];
-//         let audioUrls = [];
-//         let songUrls = [];
-
-//         // Compute placeholder counts BEFORE uploading (from text entries)
-//         const imagePlaceholders = countPlaceholders(req.body?.imageFiles);
-//         const videoPlaceholders = countPlaceholders(req.body?.videoFiles);
-
-//         // Upload all files in parallel for better performance
-//         const uploadTasks = [];
-
-//         // Handle thumbnail upload
-//         if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
-//             uploadTasks.push(
-//                 uploadResult(req.files.thumbnail[0].path)
-//                     .then(result => {
-//                         if (!result?.url) throw new Error("Thumbnail upload failed");
-//                         thumbnailUrl = result.url;
-//                     })
-//                     .catch(error => {
-//                         throw new ApiError(400, `Thumbnail upload failed: ${error.message}`);
-//                     })
-//             );
-//         }
-
-//         // Handle image uploads
-//         if (req.files?.imageFiles && req.files.imageFiles.length > 0) {
-//             uploadTasks.push(
-//                 uploadMultipleFiles(req.files.imageFiles, 'image')
-//                     .then(urls => {
-//                         imageUrls = urls;
-//                     })
-//             );
-//         }
-
-//         // Handle video uploads
-//         if (req.files?.videoFiles && req.files.videoFiles.length > 0) {
-//             uploadTasks.push(
-//                 uploadMultipleFiles(req.files.videoFiles, 'video')
-//                     .then(urls => {
-//                         videoUrls = urls;
-//                     })
-//             );
-//         }
-
-//         // Handle audio uploads
-//         if (req.files?.audioFiles && req.files.audioFiles.length > 0) {
-//             uploadTasks.push(
-//                 uploadMultipleFiles(req.files.audioFiles, 'audio')
-//                     .then(urls => {
-//                         audioUrls = urls;
-//                     })
-//             );
-//         }
-
-//   if(req.files?.song && req.files.song.length > 0) {
-//             uploadTasks.push(
-//                 uploadMultipleFiles(req.files.song, 'song')
-//                     .then(urls => {
-//                     songUrls = urls;
-//                     })
-//             );
-//         }
-
-
-
-
-
-//         // Wait for all uploads to complete
-//         await Promise.all(uploadTasks);
-
-//         // Build ordered arrays with placeholders first, then uploaded files in order
-//         const formattedImageFiles = [
-//             ...Array.from({ length: imagePlaceholders }).map(() => ({})),
-//             ...formatMediaFiles(imageUrls)
-//         ].map((item, idx) => item.url ? { ...item, position: idx + 1 } : {});
-
-//         const formattedVideoFiles = [
-//             ...Array.from({ length: videoPlaceholders }).map(() => ({})),
-//             ...formatMediaFiles(videoUrls)
-//         ].map((item, idx) => item.url ? { ...item, position: idx + 1 } : {});
-
+//         await generateVideoThumbnail(videoPath, tempThumbnailPath, '50%');
         
-//         // //count the response of video and image without {}
-//         // // Calculate real counts (exclude placeholder empty objects {})
-//         // const realImageCount = formattedImageFiles.filter(x => x && x.url).length;
-//         // const realVideoCount = formattedVideoFiles.filter(x => x && x.url).length;
-
+//         // Upload the generated thumbnail to cloudinary
+//         const uploadResult = await uploadResult(tempThumbnailPath);
         
-
+//         // Clean up temp file
+//         try {
+//             await unlink(tempThumbnailPath);
+//         } catch (cleanupError) {
+//             console.warn('Failed to cleanup temp thumbnail:', cleanupError.message);
+//         }
         
-//         // Create post with proper data structure
-//         const postData = {
-//             title,
-//             description,
-//             category,
-//             productId,
-//             thumbnail: thumbnailUrl,
-//             // Conditionally include media arrays only when not empty
-//             audioFile: audioUrls.length > 0 ? audioUrls[0] : undefined, // Single string based on schema
-//             song: songUrls.length > 0 ? songUrls[0] : undefined, // Single string based on schema
-//             // include empty object to
-//             imagecount: formattedImageFiles.length,
-//             videocount: formattedVideoFiles.length,
-               
-//             // // exclude empty objects from counts
-//             //      imagecount: realImageCount,
-//             //      videocount: realVideoCount,
-
-
-
-//             audiocount: audioUrls.length,
-//             pattern: pattern || 'single',
-//             owner: user._id,
-//             store: Boolean(store),
-//             ...socialLinks.socialLinks
-//         };
-
-//         // Store only real files in DB (skip placeholders), but keep full response with placeholders
-//         const imageFilesForDb = formattedImageFiles.filter(x => x && x.url);
-//         const videoFilesForDb = formattedVideoFiles.filter(x => x && x.url);
-//         if (imageFilesForDb.length > 0) postData.imageFiles = imageFilesForDb;
-//         if (videoFilesForDb.length > 0) postData.videoFiles = videoFilesForDb;
-
-//         // Remove undefined fields
-//         Object.keys(postData).forEach(key => {
-//             if (postData[key] === undefined) {
-//                 delete postData[key];
-//             }
-//         });
-
-//         const post = await Post.create(postData);
-
-//         // Populate owner details for response
-//         const populatedPost = await Post.findById(post._id)
-//             .populate('owner', 'username fullName avatar')
-//             .lean();
-        
-//                 // with {}        
-//             // Replace DB media arrays with response arrays that include placeholders
-//         const responseDoc = { ...populatedPost };
-//         if (formattedImageFiles.length > 0) responseDoc.imageFiles = formattedImageFiles;
-//         if (formattedVideoFiles.length > 0) responseDoc.videoFiles = formattedVideoFiles;
-//         responseDoc.imagecount = formattedImageFiles.length;
-//         responseDoc.videocount = formattedVideoFiles.length;
-
-
-
-//         // // without {}
-//         // //   Replace DB media arrays with response arrays that include placeholders only when there's at least one real file
-//         // const responseDoc = { ...populatedPost };
-//         // if (realImageCount > 0) responseDoc.imageFiles = formattedImageFiles;
-//         // if (realVideoCount > 0) responseDoc.videoFiles = formattedVideoFiles;
-
-//         // // Ensure response counts exclude placeholders
-//         // responseDoc.imagecount = realImageCount;
-//         // responseDoc.videocount = realVideoCount;
-
-
-
-//         return res.status(200).json(
-//             new ApiResponse(201, pruneEmptyMediaFields(responseDoc), "Post created successfully")
-//         );
+//         return uploadResult?.url || null;
 //     } catch (error) {
-//         handleSocialLinkError(error);
+//         console.error('Post URL generation failed:', error.message);
+//         return null;
 //     }
-// });
-
-// ...existing code...
-
-//  const publishPost = asyncHandler(async (req, res) => {
-//     const { 
-//         title, 
-//         description, 
-//         category, 
-//         store, 
-//         pattern, 
-//         productId,
-//         // client should send positions as form-data text fields:
-//         // imagePositions (single value or array of values) and videoPositions
-//         imagePositions: rawImagePositions,
-//         videoPositions: rawVideoPositions,
-//         ...socialPayload 
-//     } = req.body;
-
-//     if (!title || !description) throw new ApiError(400, "Title and description are required");
-//     if (!category) throw new ApiError(400, "Category is required");
-
-//     validateMediaFiles(req.files || {});
-
-//     // ensure category exists
-//     const categoryExists = await Categoury.findOne({categouryname: category});
-//     if (!categoryExists) await Categoury.create({categouryname: category});
-
-//     const user = await User.findById(req.userVerfied._id);
-//     if (!user) throw new ApiError(404, "User not found");
-
-//     // video/thumbnail conflict check
-//     const hasVideoFiles = req.files?.videoFiles && req.files.videoFiles.length > 0;
-//     const hasThumbnail = req.files?.thumbnail && req.files.thumbnail.length > 0;
-//     if (!hasVideoFiles && hasThumbnail) throw new ApiError(400, "Cannot upload thumbnail when video files are not present.");
-
-//     try {
-//         const socialLinks = processSocialLinks(user, socialPayload);
-
-//         // uploads
-//         let thumbnailUrl = null;
-//         let imageUrls = [];
-//         let videoUrls = [];
-//         let audioUrls = [];
-//         let songUrls = [];
-
-//         const imagePlaceholders = countPlaceholders(req.body?.imageFiles);
-//         const videoPlaceholders = countPlaceholders(req.body?.videoFiles);
-
-//         const uploadTasks = [];
-//         if (req.files?.thumbnail?.length) {
-//             uploadTasks.push(uploadResult(req.files.thumbnail[0].path).then(r => { if (!r?.url) throw new Error("thumb failed"); thumbnailUrl = r.url; }));
-//         }
-//         if (req.files?.imageFiles?.length) {
-//             uploadTasks.push(uploadMultipleFiles(req.files.imageFiles, 'image').then(urls => imageUrls = urls));
-//         }
-//         if (req.files?.videoFiles?.length) {
-//             uploadTasks.push(uploadMultipleFiles(req.files.videoFiles, 'video').then(urls => videoUrls = urls));
-//         }
-//         if (req.files?.audioFiles?.length) {
-//             uploadTasks.push(uploadMultipleFiles(req.files.audioFiles, 'audio').then(urls => audioUrls = urls));
-//         }
-//         if (req.files?.song?.length) {
-//             uploadTasks.push(uploadMultipleFiles(req.files.song, 'song').then(urls => songUrls = urls));
-//         }
-
-//         await Promise.all(uploadTasks);
-
-//         // parse positions sent by client (can be single value or array of strings)
-//         const parsePositions = (raw) => {
-//             if (!raw) return [];
-//             const arr = Array.isArray(raw) ? raw : [raw];
-//             return arr.map(v => {
-//                 const n = parseInt(v, 10);
-//                 return Number.isFinite(n) && n > 0 ? n : null;
-//             }).filter(v => v !== null);
-//         };
-//         const imagePosArr = parsePositions(rawImagePositions);
-//         const videoPosArr = parsePositions(rawVideoPositions);
-
-//         // build slot arrays using explicit positions
-//         const buildSlotsUsingPositions = (placeholdersCount, uploadedUrls, positionsArr) => {
-//             // determine required length
-//             const maxProvidedPos = positionsArr.length ? Math.max(...positionsArr) : 0;
-//             const minSlots = placeholdersCount + uploadedUrls.length;
-//             const totalSlots = Math.max(maxProvidedPos, minSlots, uploadedUrls.length ? Math.max(...positionsArr, 0) : 0) || minSlots;
-
-//             const slots = Array.from({ length: totalSlots }).map(() => ({}));
-
-//             // place uploaded items into slots according to positionsArr when provided
-//             // positionsArr corresponds to uploadedUrls order (client must provide same order)
-//             let uploadedIndex = 0;
-//             // first, if positions provided, try placing accordingly
-//             for (let i = 0; i < uploadedUrls.length; i++) {
-//                 const url = uploadedUrls[i];
-//                 const pos = positionsArr[i];
-//                 if (pos && pos >= 1 && pos <= slots.length && !slots[pos - 1].url) {
-//                     slots[pos - 1] = { url, position: pos };
-//                     uploadedIndex++;
-//                 } else {
-//                     // will fill later into earliest empty
-//                     break;
-//                 }
-//             }
-
-//             // fill remaining uploaded urls into earliest empty slots left-to-right
-//             let ui = 0;
-//             for (let i = 0; i < uploadedUrls.length; i++) {
-//                 const url = uploadedUrls[i];
-//                 // skip those already placed (if positionsArr[i] was used)
-//                 if (positionsArr[i] && slots[positionsArr[i] - 1] && slots[positionsArr[i] - 1].url === url) continue;
-//                 // find first empty index
-//                 const emptyIndex = slots.findIndex(s => !s.url);
-//                 if (emptyIndex === -1) {
-//                     // expand slots if no empty slot (shouldn't normally happen)
-//                     slots.push({ url, position: slots.length + 1 });
-//                 } else {
-//                     slots[emptyIndex] = { url, position: emptyIndex + 1 };
-//                 }
-//             }
-
-//             // set positions for any uploaded placed without explicit position
-//             for (let i = 0; i < slots.length; i++) {
-//                 if (slots[i].url) slots[i].position = i + 1;
-//             }
-
-//             return slots;
-//         };
-
-//         const formattedImageFiles = buildSlotsUsingPositions(imagePlaceholders, imageUrls, imagePosArr);
-//         const formattedVideoFiles = buildSlotsUsingPositions(videoPlaceholders, videoUrls, videoPosArr);
-
-//         // counts exclude placeholder {}
-//         const realImageCount = formattedImageFiles.filter(x => x && x.url).length;
-//         const realVideoCount = formattedVideoFiles.filter(x => x && x.url).length;
-
-//         // prepare postData (DB: only store real media objects)
-//         const imageFilesForDb = formattedImageFiles.filter(x => x && x.url);
-//         const videoFilesForDb = formattedVideoFiles.filter(x => x && x.url);
-
-//         const postData = {
-//             title,
-//             description,
-//             category,
-//             productId,
-//             thumbnail: thumbnailUrl || undefined,
-//             audioFile: audioUrls.length > 0 ? audioUrls[0] : undefined,
-//             song: songUrls.length > 0 ? songUrls[0] : undefined,
-//             imagecount: realImageCount,
-//             videocount: realVideoCount,
-//             audiocount: audioUrls.length,
-//             pattern: pattern || 'single',
-//             owner: user._id,
-//             store: Boolean(store),
-//             ...socialLinks.socialLinks
-//         };
-//         if (imageFilesForDb.length > 0) postData.imageFiles = imageFilesForDb;
-//         if (videoFilesForDb.length > 0) postData.videoFiles = videoFilesForDb;
-
-//         // cleanup undefined
-//         Object.keys(postData).forEach(k => postData[k] === undefined && delete postData[k]);
-
-//         const post = await Post.create(postData);
-
-//         const populatedPost = await Post.findById(post._id)
-//             .populate('owner', 'username fullName avatar')
-//             .lean();
-
-//         // prepare response doc: include only real files (remove {} placeholders) and renumber positions
-//         const responseDoc = { ...populatedPost };
-
-//         if (realImageCount > 0) {
-//             responseDoc.imageFiles = formattedImageFiles
-//                 .filter(f => f && f.url)
-//                 .map((f, idx) => ({ ...f, position: f.position || idx + 1 }));
-//             responseDoc.imagecount = responseDoc.imageFiles.length;
-//         } else {
-//             delete responseDoc.imageFiles;
-//             responseDoc.imagecount = 0;
-//         }
-
-//         if (realVideoCount > 0) {
-//             responseDoc.videoFiles = formattedVideoFiles
-//                 .filter(f => f && f.url)
-//                 .map((f, idx) => ({ ...f, position: f.position || idx + 1 }));
-//             responseDoc.videocount = responseDoc.videoFiles.length;
-//         } else {
-//             delete responseDoc.videoFiles;
-//             responseDoc.videocount = 0;
-//         }
-
-//         return res.status(200).json(new ApiResponse(201, pruneEmptyMediaFields(responseDoc), "Post created successfully"));
-//     } catch (error) {
-//         handleSocialLinkError(error);
-//     }
-// });
-
-
-
-
-// new publishPost  with imageFile1, imageFile2, videoFile1, videoFile2
-
-
-
-
+// };
 
 
 // const publishPost = asyncHandler(async (req, res) => {
@@ -698,61 +336,101 @@ const getPostById = asyncHandler(async (req, res) => {
 //         title, 
 //         description, 
 //         category, 
-//         store, 
-//         pattern, 
-//         productId,
+//         pattern,
+        
+//         // Store data
+//         storeisActive,
+//         storeIconSize,
+//         storeId,
+//         storeUrl,
+        
+//         // Product data
+//         productisActive,
+//         productIconSize,
+//         ProductId,
+//         productUrl,
+        
+//         // Video autoplay flags
 //         autoplay1,
 //         autoplay2,
 //         autoplay3,
 //         autoplay4,
 //         autoplay5,
 
+//         // New URL fields
+//         facebookurl,
+//         instagramurl,
+//         whatsappnumberurl,
+//         storelinkurl,
+
 //         ...socialPayload 
         
 //     } = req.body;
-
-//     if (!title || !description) throw new ApiError(400, "Title and description are required");
+    
+//     // STEP 1: VALIDATE ALL INPUT DATA FIRST (BEFORE ANY UPLOADS)
+//     // if (!title || !description) throw new ApiError(400, "Title and description are required");
 //     if (!category) throw new ApiError(400, "Category is required");
 
 //     // Validate files structure - now checking for numbered fields
 //     validateNumberedMediaFiles(req.files || {});
 
-//     // Ensure category exists
-//     const categoryExists = await Categoury.findOne({categouryname: category});
-//     if (!categoryExists) await Categoury.create({categouryname: category});
-
 //     const user = await User.findById(req.userVerfied._id);
 //     if (!user) throw new ApiError(404, "User not found");
 
-//     // Video/thumbnail conflict check
-//     const hasVideoFiles = checkForNumberedVideoFiles(req.files);
-//     const hasThumbnail = req.files?.thumbnail && req.files.thumbnail.length > 0;
-//     if (!hasVideoFiles && hasThumbnail) {
-//         throw new ApiError(400, "Cannot upload thumbnail when video files are not present.");
+//     // Helper function to check if value is true (handles both boolean and string)
+//     const isTrue = (val) => {
+//         return val === true || val === 'true' || val === '1';
+//     };
+
+//     // STEP 2: VALIDATE SOCIAL MEDIA LOGIC BEFORE UPLOADS
+//     // Facebook validation
+//     if (isTrue(socialPayload.facebook) && facebookurl) {
+//         throw new ApiError(400, "Cannot provide both facebook=true and facebookurl. Choose one.");
+//     }
+    
+//     // Instagram validation  
+//     if (isTrue(socialPayload.instagram) && instagramurl) {
+//         throw new ApiError(400, "Cannot provide both instagram=true and instagramurl. Choose one.");
+//     }
+    
+//     // WhatsApp validation
+//     if (isTrue(socialPayload.whatsapp) && whatsappnumberurl) {
+//         throw new ApiError(400, "Cannot provide both whatsapp=true and whatsappnumberurl. Choose one.");
+//     }
+    
+//     // Store link validation
+//     if (isTrue(socialPayload.storeLink) && storelinkurl) {
+//         throw new ApiError(400, "Cannot provide both storeLink=true and storelinkurl. Choose one.");
 //     }
 
+//     // STEP 3: VALIDATE SOCIAL LINKS STRUCTURE
+//     let socialLinks = { socialLinks: {} };
 //     try {
-//         const socialLinks = processSocialLinks(user, socialPayload);
+//         socialLinks = processSocialLinks(user, socialPayload);
+//     } catch (socialError) {
+//         // If the only error is "At least one social link required", ignore it for posts
+//         if (socialError.message === "At least one social link required") {
+//             socialLinks = { socialLinks: {} };
+//         } else {
+//             // Re-throw other social link errors (like missing profile data)
+//             throw socialError;
+//         }
+//     }
 
+//     // Ensure category exists (this is a quick DB operation)
+//     const categoryExists = await Categoury.findOne({categouryname: category});
+//     if (!categoryExists) await Categoury.create({categouryname: category});
+
+//     // STEP 4: NOW START FILE UPLOADS (ONLY AFTER ALL VALIDATIONS PASS)
+//     try {
 //         // Initialize upload results
-//         let thumbnailUrl = null;
 //         let imageResults = {}; // Store as {position: url}
-//         let videoResults = {}; // Store as {position: url}
+//         let videoResults = {}; // Store as {position: {url, thumbnail, posturl}}
+//         let thumbnailResults = {}; // Store thumbnails by position
 //         let audioUrls = [];
 //         let songUrls = [];
 
 //         const uploadTasks = [];
-
-//         // Handle thumbnail upload
-//         if (req.files?.thumbnail?.length) {
-//             uploadTasks.push(
-//                 uploadResult(req.files.thumbnail[0].path)
-//                     .then(result => {
-//                         if (!result?.url) throw new Error("Thumbnail upload failed");
-//                         thumbnailUrl = result.url;
-//                     })
-//             );
-//         }
 
 //         // Handle numbered image files (imageFile1, imageFile2, etc.)
 //         for (let i = 1; i <= 5; i++) {
@@ -771,15 +449,67 @@ const getPostById = asyncHandler(async (req, res) => {
 //             }
 //         }
 
+//         // Handle numbered thumbnail files (thumbnail1, thumbnail2, etc.)
+//         for (let i = 1; i <= 5; i++) {
+//             const fieldName = `thumbnail${i}`;
+//             if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
+//                 uploadTasks.push(
+//                     uploadResult(req.files[fieldName][0].path)
+//                         .then(result => {
+//                             if (!result?.url) throw new Error(`Thumbnail ${i} upload failed`);
+//                             thumbnailResults[i] = result.url;
+//                         })
+//                         .catch(error => {
+//                             throw new ApiError(400, `Thumbnail ${i} upload failed: ${error.message}`);
+//                         })
+//                 );
+//             }
+//         }
+
 //         // Handle numbered video files (videoFile1, videoFile2, etc.)
 //         for (let i = 1; i <= 5; i++) {
 //             const fieldName = `videoFile${i}`;
 //             if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
 //                 uploadTasks.push(
 //                     uploadResult(req.files[fieldName][0].path)
-//                         .then(result => {
+//                         .then(async (result) => {
 //                             if (!result?.url) throw new Error(`Video file ${i} upload failed`);
-//                             videoResults[i] = result.url;
+                            
+//                             const videoData = {
+//                                 url: result.url,
+//                                 thumbnail: null,
+//                                 posturl: null
+//                             };
+
+//                             // Handle thumbnail: use user-provided or generate if not provided
+//                             if (thumbnailResults[i]) {
+//                                 // User provided thumbnail - use it
+//                                 videoData.thumbnail = thumbnailResults[i];
+//                             } else {
+//                                 // No user thumbnail - generate one using ffmpeg
+//                                 try {
+//                                     const generatedThumbnail = await generatePostUrl(req.files[fieldName][0].path);
+//                                     if (generatedThumbnail) {
+//                                         videoData.thumbnail = generatedThumbnail;
+//                                     }
+//                                 } catch (thumbError) {
+//                                     console.warn(`Failed to generate thumbnail for video ${i}:`, thumbError.message);
+//                                 }
+//                             }
+
+//                             // Generate post URL only if user didn't provide thumbnail for this video
+//                             if (!thumbnailResults[i]) {
+//                                 try {
+//                                     const postUrl = await generatePostUrl(req.files[fieldName][0].path);
+//                                     if (postUrl) {
+//                                         videoData.posturl = postUrl;
+//                                     }
+//                                 } catch (postUrlError) {
+//                                     console.warn(`Failed to generate post URL for video ${i}:`, postUrlError.message);
+//                                 }
+//                             }
+
+//                             videoResults[i] = videoData;
 //                         })
 //                         .catch(error => {
 //                             throw new ApiError(400, `Video file ${i} upload failed: ${error.message}`);
@@ -809,190 +539,13 @@ const getPostById = asyncHandler(async (req, res) => {
 
 //         // Convert results to arrays with positions
 //         const formattedImageFiles = Object.keys(imageResults)
-//             .sort((a, b) => parseInt(a) - parseInt(b)) // Sort by position number
+//             .sort((a, b) => parseInt(a) - parseInt(b))
 //             .map(position => ({
 //                 url: imageResults[position],
 //                 Imageposition: parseInt(position)
 //             }));
 
-//         const formattedVideoFiles = Object.keys(videoResults)
-//             .sort((a, b) => parseInt(a) - parseInt(b)) // Sort by position number
-//             .map(position => ({
-//                 url: videoResults[position],
-//                 Videoposition: parseInt(position)
-//             }));
-
-//         // Create post data
-//         const postData = {
-//             title,
-//             description,
-//             category,
-//             productId,
-//             thumbnail: thumbnailUrl || undefined,
-//             audioFile: audioUrls.length > 0 ? audioUrls[0] : undefined,
-//             song: songUrls.length > 0 ? songUrls[0] : undefined,
-//             imagecount: formattedImageFiles.length,
-//             videocount: formattedVideoFiles.length,
-//             audiocount: audioUrls.length,
-//             pattern: pattern || 'single',
-//             owner: user._id,
-//             store: Boolean(store),
-//             ...socialLinks.socialLinks
-//         };
-
-//         // Add media arrays only if they have content
-//         if (formattedImageFiles.length > 0) postData.imageFiles = formattedImageFiles;
-//         if (formattedVideoFiles.length > 0) postData.videoFiles = formattedVideoFiles;
-
-//         // Remove undefined fields
-//         Object.keys(postData).forEach(key => {
-//             if (postData[key] === undefined) {
-//                 delete postData[key];
-//             }
-//         });
-
-//         const post = await Post.create(postData);
-
-//         // Populate owner details for response
-//         const populatedPost = await Post.findById(post._id)
-//             .populate('owner', 'username fullName avatar')
-//             .lean();
-
-//         return res.status(200).json(
-//             new ApiResponse(201, pruneEmptyMediaFields(populatedPost), "Post created successfully")
-//         );
-//     } catch (error) {
-//         handleSocialLinkError(error);
-//     }
-// });
-
-
-
-//new publishPost with check => autoplay1, autoplay2, autoplay3, autoplay4, autoplay5
-
-// const publishPost = asyncHandler(async (req, res) => {
-//     const { 
-//         title, 
-//         description, 
-//         category, 
-//         store, 
-//         pattern, 
-//         productId,
-//         autoplay1,
-//         autoplay2,
-//         autoplay3,
-//         autoplay4,
-//         autoplay5,
-
-//         ...socialPayload 
-        
-//     } = req.body;
-    
-//     if (!title || !description) throw new ApiError(400, "Title and description are required");
-//     if (!category) throw new ApiError(400, "Category is required");
-
-//     // Validate files structure - now checking for numbered fields
-//     validateNumberedMediaFiles(req.files || {});
-
-//     // Ensure category exists
-//     const categoryExists = await Categoury.findOne({categouryname: category});
-//     if (!categoryExists) await Categoury.create({categouryname: category});
-
-//     const user = await User.findById(req.userVerfied._id);
-//     if (!user) throw new ApiError(404, "User not found");
-
-//     // Video/thumbnail conflict check
-//     const hasVideoFiles = checkForNumberedVideoFiles(req.files);
-//     const hasThumbnail = req.files?.thumbnail && req.files.thumbnail.length > 0;
-//     if (!hasVideoFiles && hasThumbnail) {
-//         throw new ApiError(400, "Cannot upload thumbnail when video files are not present.");
-//     }
-
-//     try {
-//         const socialLinks = processSocialLinks(user, socialPayload);
-
-//         // Initialize upload results
-//         let thumbnailUrl = null;
-//         let imageResults = {}; // Store as {position: url}
-//         let videoResults = {}; // Store as {position: url}
-//         let audioUrls = [];
-//         let songUrls = [];
-
-//         const uploadTasks = [];
-
-//         // Handle thumbnail upload
-//         if (req.files?.thumbnail?.length) {
-//             uploadTasks.push(
-//                 uploadResult(req.files.thumbnail[0].path)
-//                     .then(result => {
-//                         if (!result?.url) throw new Error("Thumbnail upload failed");
-//                         thumbnailUrl = result.url;
-//                     })
-//             );
-//         }
-
-//         // Handle numbered image files (imageFile1, imageFile2, etc.)
-//         for (let i = 1; i <= 5; i++) {
-//             const fieldName = `imageFile${i}`;
-//             if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
-//             uploadTasks.push(
-//                     uploadResult(req.files[fieldName][0].path)
-//                         .then(result => {
-//                             if (!result?.url) throw new Error(`Image file ${i} upload failed`);
-//                             imageResults[i] = result.url;
-//                         })
-//                         .catch(error => {
-//                             throw new ApiError(400, `Image file ${i} upload failed: ${error.message}`);
-//                         })
-//                 );
-//             }
-//         }
-
-//         // Handle numbered video files (videoFile1, videoFile2, etc.)
-//         for (let i = 1; i <= 5; i++) {
-//             const fieldName = `videoFile${i}`;
-//             if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
-//             uploadTasks.push(
-//                     uploadResult(req.files[fieldName][0].path)
-//                         .then(result => {
-//                             if (!result?.url) throw new Error(`Video file ${i} upload failed`);
-//                             videoResults[i] = result.url;
-//                         })
-//                         .catch(error => {
-//                             throw new ApiError(400, `Video file ${i} upload failed: ${error.message}`);
-//                         })
-//                 );
-//             }
-//         }
-
-//         // Handle audio files (keeping original structure)
-//         if (req.files?.audioFiles?.length) {
-//             uploadTasks.push(
-//                 uploadMultipleFiles(req.files.audioFiles, 'audio')
-//                     .then(urls => audioUrls = urls)
-//             );
-//         }
-
-//         // Handle song files (keeping original structure)
-//         if (req.files?.song?.length) {
-//             uploadTasks.push(
-//                 uploadMultipleFiles(req.files.song, 'song')
-//                     .then(urls => songUrls = urls)
-//             );
-//         }
-
-//         // Wait for all uploads to complete
-//         await Promise.all(uploadTasks);
-
-//         // Convert results to arrays with positions
-//         const formattedImageFiles = Object.keys(imageResults)
-//             .sort((a, b) => parseInt(a) - parseInt(b)) // Sort by position number
-//             .map(position => ({
-//                 url: imageResults[position],
-//                 Imageposition: parseInt(position)
-//             }));
-
-//         // helper to parse autoplay values from form-data (accepts "1","true","yes","on" or boolean)
+//         // Helper to parse autoplay values from form-data
 //         const parseAutoplayFlag = (val) => {
 //             if (val === undefined || val === null) return false;
 //             if (typeof val === 'boolean') return val;
@@ -1000,38 +553,118 @@ const getPostById = asyncHandler(async (req, res) => {
 //             return ['1', 'true', 'yes', 'on'].includes(s);
 //         };
 
-//         // autoplay1..autoplay5 are destructured from req.body at top of publishPost
-//         const autoplayFlags = { 1: autoplay1, 2: autoplay2, 3: autoplay3, 4: autoplay4, 5: autoplay5 };
+//         // Parse autoplay flags
+//         const autoplayFlags = { 
+//             1: autoplay1, 
+//             2: autoplay2, 
+//             3: autoplay3, 
+//             4: autoplay4, 
+//             5: autoplay5 
+//         };
 
+//         // Format video files with all metadata
 //         const formattedVideoFiles = Object.keys(videoResults)
-//             .sort((a, b) => parseInt(a) - parseInt(b)) // Sort by position number
-//             .map(position => ({
-//                 url: videoResults[position],
-//                 Videoposition: parseInt(position),
-//                 autoplay: parseAutoplayFlag(autoplayFlags[position])
-//             }));
+//             .sort((a, b) => parseInt(a) - parseInt(b))
+//             .map(position => {
+//                 const videoData = videoResults[position];
+//                 const formattedVideo = {
+//                     url: videoData.url,
+//                     Videoposition: parseInt(position),
+//                     autoplay: parseAutoplayFlag(autoplayFlags[position])
+//                 };
+
+//                 // Add thumbnail if available
+//                 if (videoData.thumbnail) {
+//                     formattedVideo.thumbnail = videoData.thumbnail;
+//                 }
+
+//                 // Add post URL if available
+//                 if (videoData.posturl) {
+//                     formattedVideo.posturl = videoData.posturl;
+//                 }
+
+//                 return formattedVideo;
+//             });
+
+//         // Format store data
+//         const storeData = [];
+//         if (storeisActive || storeId || storeUrl) {
+//             storeData.push({
+//                 storeisActive: Boolean(storeisActive),
+//                 storeIconSize: storeIconSize || 'L',
+//                 storeId: storeId || undefined,
+//                 storeUrl: storeUrl || undefined
+//             });
+//         }
+
+//         // Format product data
+//         const productData = [];
+//         if (productisActive || ProductId || productUrl) {
+//             productData.push({
+//                 productisActive: Boolean(productisActive),
+//                 productIconSize: productIconSize || 'S',
+//                 ProductId: ProductId || undefined,
+//                 productUrl: productUrl || undefined
+//             });
+//         }
+
+//         // Handle new URL fields with conditions (validation already done above)
+//         const urlFields = {};
+        
+//         // Facebook logic - if facebook is true, use user's profile data; if not true, save URL
+//         if (isTrue(socialPayload.facebook)) {
+//             // Use the user's facebook from their profile (processed by processSocialLinks)
+//             // The socialLinks already contains the correct facebook value from user profile
+//         } else if (facebookurl) {
+//             urlFields.facebookurl = facebookurl;
+//         }
+        
+//         // Instagram logic - if instagram is true, use user's profile data; if not true, save URL  
+//         if (isTrue(socialPayload.instagram)) {
+//             // Use the user's instagram from their profile (processed by processSocialLinks)
+//             // The socialLinks already contains the correct instagram value from user profile
+//         } else if (instagramurl) {
+//             urlFields.instagramurl = instagramurl;
+//         }
+        
+//         // WhatsApp logic - if whatsapp is true, use user's profile data; if not true, save URL
+//         if (isTrue(socialPayload.whatsapp)) {
+//             // Use the user's whatsapp number from their profile (processed by processSocialLinks)
+//             // The socialLinks already contains the correct whatsapp number from user profile
+//             // Don't add anything to urlFields - let processSocialLinks handle it
+//         } else if (whatsappnumberurl) {
+//             urlFields.whatsappnumberurl = whatsappnumberurl;
+//         }
+        
+//         // Store link logic - if storeLink is true, use user's profile data; if not true, save URL
+//         if (isTrue(socialPayload.storeLink)) {
+//             // Use the user's storeLink from their profile (processed by processSocialLinks)
+//             // The socialLinks already contains the correct storeLink value from user profile
+//         } else if (storelinkurl) {
+//             urlFields.storelinkurl = storelinkurl;
+//         }
 
 //         // Create post data
 //         const postData = {
 //             title,
 //             description,
 //             category,
-//             productId,
-//             thumbnail: thumbnailUrl || undefined,
 //             audioFile: audioUrls.length > 0 ? audioUrls[0] : undefined,
-//             song: songUrls.length > 0 ? songUrls[0] : undefined,
+//             song: songUrls.length > 0 ? songUrls : undefined,
 //             imagecount: formattedImageFiles.length,
 //             videocount: formattedVideoFiles.length,
 //             audiocount: audioUrls.length,
 //             pattern: pattern || 'single',
 //             owner: user._id,
-//             store: Boolean(store),
-//             ...socialLinks.socialLinks
+//             ...socialLinks.socialLinks,
+//             ...urlFields  // Add the conditional URL fields
 //         };
 
-//         // Add media arrays only if they have content
+//         // Add arrays only if they have content
 //         if (formattedImageFiles.length > 0) postData.imageFiles = formattedImageFiles;
 //         if (formattedVideoFiles.length > 0) postData.videoFiles = formattedVideoFiles;
+//         if (storeData.length > 0) postData.store = storeData;
+//         if (productData.length > 0) postData.product = productData;
 
 //         // Remove undefined fields
 //         Object.keys(postData).forEach(key => {
@@ -1045,318 +678,567 @@ const getPostById = asyncHandler(async (req, res) => {
 //         // Populate owner details for response
 //         const populatedPost = await Post.findById(post._id)
 //             .populate('owner', 'username fullName avatar')
+//             .populate('store.storeId')
+//             .populate('product.ProductId')
 //             .lean();
 
 //         return res.status(200).json(
 //             new ApiResponse(201, pruneEmptyMediaFields(populatedPost), "Post created successfully")
 //         );
 //     } catch (error) {
+//         console.error('Post creation error:', error);
 //         handleSocialLinkError(error);
 //     }
 // });
 
-// // Helper function to validate numbered media files
-// const validateNumberedMediaFiles = (files) => {
-//     const errors = [];
+
+
+
+
+// ============= Verified ======================//
+// thummbnail (creation handle at frontend )  at frontend 
+
+
+// const publishPost = asyncHandler(async (req, res) => {
+//     const { 
+//         title, 
+//         description, 
+//         category, 
+//         pattern,
+//         storeisActive,
+//         storeIconSize,
+//         storeId,
+//         storeUrl,
+//         productisActive,
+//         productIconSize,
+//         ProductId,
+//         productUrl,
+//         autoplay1,
+//         autoplay2,
+//         autoplay3,
+//         autoplay4,
+//         autoplay5,
+//         facebookurl,
+//         instagramurl,
+//         whatsappnumberurl,
+//         storelinkurl,
+//         ...socialPayload 
+//     } = req.body;
     
-//     // Check for invalid numbered fields beyond the expected range
-//     Object.keys(files).forEach(key => {
-//         if (key.startsWith('imageFile')) {
-//             const num = key.replace('imageFile', '');
-//             if (!/^[1-5]$/.test(num)) {
-//                 errors.push(`Invalid image field: ${key}. Only imageFile1 to imageFile5 are allowed`);
+//     // STEP 1: VALIDATE INPUT
+//     if (!category) throw new ApiError(400, "Category is required");
+//     validateNumberedMediaFiles(req.files || {});
+
+//     // OPTIMIZATION 1: Run user fetch and category check in parallel
+//     const [user, categoryExists] = await Promise.all([
+//         User.findById(req.userVerfied._id),
+//         Categoury.findOne({categouryname: category})
+//     ]);
+
+//     if (!user) throw new ApiError(404, "User not found");
+
+//     // Create category if doesn't exist (non-blocking - can happen in background)
+//     if (!categoryExists) {
+//         // Don't await - let it happen in background
+//         Categoury.create({categouryname: category}).catch(err => 
+//             console.error('Category creation failed:', err)
+//         );
+//     }
+
+//     const isTrue = (val) => {
+//         return val === true || val === 'true' || val === '1';
+//     };
+
+//     // STEP 2: VALIDATE SOCIAL MEDIA LOGIC
+//     if (isTrue(socialPayload.facebook) && facebookurl) {
+//         throw new ApiError(400, "Cannot provide both facebook=true and facebookurl. Choose one.");
+//     }
+//     if (isTrue(socialPayload.instagram) && instagramurl) {
+//         throw new ApiError(400, "Cannot provide both instagram=true and instagramurl. Choose one.");
+//     }
+//     if (isTrue(socialPayload.whatsapp) && whatsappnumberurl) {
+//         throw new ApiError(400, "Cannot provide both whatsapp=true and whatsappnumberurl. Choose one.");
+//     }
+//     if (isTrue(socialPayload.storeLink) && storelinkurl) {
+//         throw new ApiError(400, "Cannot provide both storeLink=true and storelinkurl. Choose one.");
+//     }
+
+//     // STEP 3: PROCESS SOCIAL LINKS
+//     let socialLinks = { socialLinks: {} };
+//     try {
+//         socialLinks = processSocialLinks(user, socialPayload);
+//     } catch (socialError) {
+//         if (socialError.message === "At least one social link required") {
+//             socialLinks = { socialLinks: {} };
+//         } else {
+//             throw socialError;
+//         }
+//     }
+
+//     // STEP 4: OPTIMIZE FILE UPLOADS - Process all in truly parallel batches
+//     try {
+//         let imageResults = {};
+//         let videoResults = {};
+//         let thumbnailResults = {};
+//         let audioUrls = [];
+//         let songUrls = [];
+
+//         // OPTIMIZATION 2: Batch all uploads by type for better parallelization
+//         const uploadPromises = [];
+
+//         // Batch 1: All images (parallel)
+//         for (let i = 1; i <= 5; i++) {
+//             const fieldName = `imageFile${i}`;
+//             if (req.files?.[fieldName]?.[0]) {
+//                 uploadPromises.push(
+//                     uploadResult(req.files[fieldName][0].path)
+//                         .then(result => {
+//                             if (result?.url) imageResults[i] = result.url;
+//                             return { type: 'image', position: i, success: !!result?.url };
+//                         })
+//                         .catch(error => {
+//                             console.error(`Image ${i} upload failed:`, error);
+//                             return { type: 'image', position: i, success: false };
+//                         })
+//                 );
 //             }
 //         }
-//         if (key.startsWith('videoFile')) {
-//             const num = key.replace('videoFile', '');
-//             if (!/^[1-5]$/.test(num)) {
-//                 errors.push(`Invalid video field: ${key}. Only videoFile1 to videoFile5 are allowed`);
+
+//         // Batch 2: All thumbnails (parallel)
+//         for (let i = 1; i <= 5; i++) {
+//             const fieldName = `thumbnail${i}`;
+//             if (req.files?.[fieldName]?.[0]) {
+//                 uploadPromises.push(
+//                     uploadResult(req.files[fieldName][0].path)
+//                         .then(result => {
+//                             if (result?.url) thumbnailResults[i] = result.url;
+//                             return { type: 'thumbnail', position: i, success: !!result?.url };
+//                         })
+//                         .catch(error => {
+//                             console.error(`Thumbnail ${i} upload failed:`, error);
+//                             return { type: 'thumbnail', position: i, success: false };
+//                         })
+//                 );
 //             }
 //         }
-//     });
-    
-//     if (errors.length > 0) {
-//         throw new ApiError(400, errors.join(", "));
-//     }
-// };
 
-// Helper function to check for numbered video files
-// const checkForNumberedVideoFiles = (files) => {
-//     if (!files) return false;
-    
-//     for (let i = 1; i <= 5; i++) {
-//         const fieldName = `videoFile${i}`;
-//         if (files[fieldName] && files[fieldName].length > 0) {
-//             return true;
+//         // OPTIMIZATION 3: Wait for thumbnails and images first (they're needed for video processing)
+//         await Promise.all(uploadPromises);
+//         uploadPromises.length = 0; // Clear array
+
+//         // Batch 3: All videos (parallel) - now thumbnails are ready
+//         for (let i = 1; i <= 5; i++) {
+//             const fieldName = `videoFile${i}`;
+//             if (req.files?.[fieldName]?.[0]) {
+//                 uploadPromises.push(
+//                     uploadResult(req.files[fieldName][0].path)
+//                         .then(result => {
+//                             if (result?.url) {
+//                                 videoResults[i] = {
+//                                     url: result.url,
+//                                     thumbnail: thumbnailResults[i] || null
+//                                 };
+//                             }
+//                             return { type: 'video', position: i, success: !!result?.url };
+//                         })
+//                         .catch(error => {
+//                             console.error(`Video ${i} upload failed:`, error);
+//                             return { type: 'video', position: i, success: false };
+//                         })
+//                 );
+//             }
 //         }
+
+//         // Batch 4: Audio files (parallel)
+//         if (req.files?.audioFiles?.length) {
+//             uploadPromises.push(
+//                 uploadMultipleFiles(req.files.audioFiles, 'audio')
+//                     .then(urls => {
+//                         audioUrls = urls;
+//                         return { type: 'audio', success: true };
+//                     })
+//                     .catch(error => {
+//                         console.error('Audio upload failed:', error);
+//                         return { type: 'audio', success: false };
+//                     })
+//             );
+//         }
+
+//         // Batch 5: Song files (parallel)
+//         if (req.files?.song?.length) {
+//             uploadPromises.push(
+//                 uploadMultipleFiles(req.files.song, 'song')
+//                     .then(urls => {
+//                         songUrls = urls;
+//                         return { type: 'song', success: true };
+//                     })
+//                     .catch(error => {
+//                         console.error('Song upload failed:', error);
+//                         return { type: 'song', success: false };
+//                     })
+//             );
+//         }
+
+//         // Wait for all remaining uploads
+//         await Promise.all(uploadPromises);
+
+//         // OPTIMIZATION 4: Format results (fast, in-memory operations)
+//         const formattedImageFiles = Object.keys(imageResults)
+//             .sort((a, b) => parseInt(a) - parseInt(b))
+//             .map(position => ({
+//                 url: imageResults[position],
+//                 Imageposition: parseInt(position)
+//             }));
+
+//         const parseAutoplayFlag = (val) => {
+//             if (val === undefined || val === null) return false;
+//             if (typeof val === 'boolean') return val;
+//             const s = String(val).trim().toLowerCase();
+//             return ['1', 'true', 'yes', 'on'].includes(s);
+//         };
+
+//         const autoplayFlags = { 
+//             1: autoplay1, 
+//             2: autoplay2, 
+//             3: autoplay3, 
+//             4: autoplay4, 
+//             5: autoplay5 
+//         };
+
+//         const formattedVideoFiles = Object.keys(videoResults)
+//             .sort((a, b) => parseInt(a) - parseInt(b))
+//             .map(position => {
+//                 const videoData = videoResults[position];
+//                 const formattedVideo = {
+//                     url: videoData.url,
+//                     Videoposition: parseInt(position),
+//                     autoplay: parseAutoplayFlag(autoplayFlags[position])
+//                 };
+//                 if (videoData.thumbnail) {
+//                     formattedVideo.thumbnail = videoData.thumbnail;
+//                 }
+//                 return formattedVideo;
+//             });
+
+//         // Format store and product data
+//         const storeData = [];
+//         if (storeisActive || storeId || storeUrl) {
+//             storeData.push({
+//                 storeisActive: Boolean(storeisActive),
+//                 storeIconSize: storeIconSize || 'L',
+//                 storeId: storeId || undefined,
+//                 storeUrl: storeUrl || undefined
+//             });
+//         }
+
+//         const productData = [];
+//         if (productisActive || ProductId || productUrl) {
+//             productData.push({
+//                 productisActive: Boolean(productisActive),
+//                 productIconSize: productIconSize || 'S',
+//                 ProductId: ProductId || undefined,
+//                 productUrl: productUrl || undefined
+//             });
+//         }
+
+//         // Handle URL fields
+//         const urlFields = {};
+//         if (isTrue(socialPayload.facebook)) {
+//             // Use user's profile data
+//         } else if (facebookurl) {
+//             urlFields.facebookurl = facebookurl;
+//         }
+        
+//         if (isTrue(socialPayload.instagram)) {
+//             // Use user's profile data
+//         } else if (instagramurl) {
+//             urlFields.instagramurl = instagramurl;
+//         }
+        
+//         if (isTrue(socialPayload.whatsapp)) {
+//             // Use user's profile data
+//         } else if (whatsappnumberurl) {
+//             urlFields.whatsappnumberurl = whatsappnumberurl;
+//         }
+        
+//         if (isTrue(socialPayload.storeLink)) {
+//             // Use user's profile data
+//         } else if (storelinkurl) {
+//             urlFields.storelinkurl = storelinkurl;
+//         }
+
+//         // OPTIMIZATION 5: Create lean post data
+//         const postData = {
+//             title,
+//             description,
+//             category,
+//             audioFile: audioUrls.length > 0 ? audioUrls[0] : undefined,
+//             song: songUrls.length > 0 ? songUrls : undefined,
+//             imagecount: formattedImageFiles.length,
+//             videocount: formattedVideoFiles.length,
+//             audiocount: audioUrls.length,
+//             pattern: pattern || 'single',
+//             owner: user._id,
+//             ...socialLinks.socialLinks,
+//             ...urlFields
+//         };
+
+//         if (formattedImageFiles.length > 0) postData.imageFiles = formattedImageFiles;
+//         if (formattedVideoFiles.length > 0) postData.videoFiles = formattedVideoFiles;
+//         if (storeData.length > 0) postData.store = storeData;
+//         if (productData.length > 0) postData.product = productData;
+
+//         // Remove undefined fields
+//         Object.keys(postData).forEach(key => {
+//             if (postData[key] === undefined) {
+//                 delete postData[key];
+//             }
+//         });
+
+//         // OPTIMIZATION 6: Create post and populate in parallel (if possible)
+//         const post = await Post.create(postData);
+
+//         // Use lean() for faster queries
+//         const populatedPost = await Post.findById(post._id)
+//             .populate('owner', 'username fullName avatar')
+//             .populate('store.storeId')
+//             .populate('product.ProductId')
+//             .lean();
+
+//         return res.status(200).json(
+//             new ApiResponse(201, pruneEmptyMediaFields(populatedPost), "Post created successfully")
+//         );
+//     } catch (error) {
+//         console.error('Post creation error:', error);
+//         handleSocialLinkError(error);
 //     }
-//     return false;
-// };
+// });
 
 
-// latest with ffmpeg 
+
+// with pregress bar
 
 
-import ffmpeg from 'fluent-ffmpeg';
-import path from 'path';
-import fs from 'fs';
-import { promisify } from 'util';
-
-// Promisify fs operations
-const unlink = promisify(fs.unlink);
-const access = promisify(fs.access);
-
-// FFmpeg thumbnail generation middleware/utility
-const generateVideoThumbnail = async (videoPath, outputPath, timeSeek = '50%') => {
-    return new Promise((resolve, reject) => {
-        ffmpeg(videoPath)
-            .screenshots({
-                timestamps: [timeSeek],
-                filename: path.basename(outputPath),
-                folder: path.dirname(outputPath),
-                size: '640x480'
-            })
-            .on('end', () => {
-                resolve(outputPath);
-            })
-            .on('error', (err) => {
-                reject(new Error(`Thumbnail generation failed: ${err.message}`));
-            });
-    });
-};
-
-// Generate post URL from video center frame
-const generatePostUrl = async (videoPath) => {
-    const tempThumbnailPath = `${videoPath}_temp_thumb.jpg`;
-    
-    try {
-        await generateVideoThumbnail(videoPath, tempThumbnailPath, '50%');
-        
-        // Upload the generated thumbnail to cloudinary
-        const uploadResult = await uploadResult(tempThumbnailPath);
-        
-        // Clean up temp file
-        try {
-            await unlink(tempThumbnailPath);
-        } catch (cleanupError) {
-            console.warn('Failed to cleanup temp thumbnail:', cleanupError.message);
-        }
-        
-        return uploadResult?.url || null;
-    } catch (error) {
-        console.error('Post URL generation failed:', error.message);
-        return null;
-    }
-};
-
+// ============================================
+// BACKEND: post.controller.js - Modified publishPost
+// ============================================
 
 const publishPost = asyncHandler(async (req, res) => {
     const { 
-        title, 
-        description, 
-        category, 
-        pattern,
-        
-        // Store data
-        storeisActive,
-        storeIconSize,
-        storeId,
-        storeUrl,
-        
-        // Product data
-        productisActive,
-        productIconSize,
-        ProductId,
-        productUrl,
-        
-        // Video autoplay flags
-        autoplay1,
-        autoplay2,
-        autoplay3,
-        autoplay4,
-        autoplay5,
-
-        // New URL fields
-        facebookurl,
-        instagramurl,
-        whatsappnumberurl,
-        storelinkurl,
-
+        title, description, category, pattern,
+        storeisActive, storeIconSize, storeId, storeUrl,
+        productisActive, productIconSize, ProductId, productUrl,
+        autoplay1, autoplay2, autoplay3, autoplay4, autoplay5,
+        facebookurl, instagramurl, whatsappnumberurl, storelinkurl,
         ...socialPayload 
-        
     } = req.body;
     
-    // STEP 1: VALIDATE ALL INPUT DATA FIRST (BEFORE ANY UPLOADS)
-    if (!title || !description) throw new ApiError(400, "Title and description are required");
-    if (!category) throw new ApiError(400, "Category is required");
-
-    // Validate files structure - now checking for numbered fields
-    validateNumberedMediaFiles(req.files || {});
-
-    const user = await User.findById(req.userVerfied._id);
-    if (!user) throw new ApiError(404, "User not found");
-
-    // Helper function to check if value is true (handles both boolean and string)
-    const isTrue = (val) => {
-        return val === true || val === 'true' || val === '1';
+    // Progress tracking helper
+    let progressPercentage = 0;
+    const updateProgress = (percent, message) => {
+        progressPercentage = percent;
+        // Store progress in a shared cache (Redis recommended for production)
+        // For now, we'll use a simple in-memory store
+        progressStore.set(req.userVerfied._id.toString(), {
+            progress: percent,
+            message: message,
+            timestamp: Date.now()
+        });
     };
 
-    // STEP 2: VALIDATE SOCIAL MEDIA LOGIC BEFORE UPLOADS
-    // Facebook validation
-    if (isTrue(socialPayload.facebook) && facebookurl) {
-        throw new ApiError(400, "Cannot provide both facebook=true and facebookurl. Choose one.");
-    }
-    
-    // Instagram validation  
-    if (isTrue(socialPayload.instagram) && instagramurl) {
-        throw new ApiError(400, "Cannot provide both instagram=true and instagramurl. Choose one.");
-    }
-    
-    // WhatsApp validation
-    if (isTrue(socialPayload.whatsapp) && whatsappnumberurl) {
-        throw new ApiError(400, "Cannot provide both whatsapp=true and whatsappnumberurl. Choose one.");
-    }
-    
-    // Store link validation
-    if (isTrue(socialPayload.storeLink) && storelinkurl) {
-        throw new ApiError(400, "Cannot provide both storeLink=true and storelinkurl. Choose one.");
-    }
-
-    // STEP 3: VALIDATE SOCIAL LINKS STRUCTURE
-    let socialLinks = { socialLinks: {} };
     try {
-        socialLinks = processSocialLinks(user, socialPayload);
-    } catch (socialError) {
-        // If the only error is "At least one social link required", ignore it for posts
-        if (socialError.message === "At least one social link required") {
-            socialLinks = { socialLinks: {} };
-        } else {
-            // Re-throw other social link errors (like missing profile data)
-            throw socialError;
+        updateProgress(5, 'Validating input data...');
+        
+        // STEP 1: VALIDATE INPUT
+        if (!category) throw new ApiError(400, "Category is required");
+        validateNumberedMediaFiles(req.files || {});
+
+        updateProgress(10, 'Fetching user data...');
+
+        const [user, categoryExists] = await Promise.all([
+            User.findById(req.userVerfied._id),
+            Categoury.findOne({categouryname: category})
+        ]);
+
+        if (!user) throw new ApiError(404, "User not found");
+
+        if (!categoryExists) {
+            Categoury.create({categouryname: category}).catch(err => 
+                console.error('Category creation failed:', err)
+            );
         }
-    }
 
-    // Ensure category exists (this is a quick DB operation)
-    const categoryExists = await Categoury.findOne({categouryname: category});
-    if (!categoryExists) await Categoury.create({categouryname: category});
+        updateProgress(15, 'Processing social links...');
 
-    // STEP 4: NOW START FILE UPLOADS (ONLY AFTER ALL VALIDATIONS PASS)
-    try {
-        // Initialize upload results
-        let imageResults = {}; // Store as {position: url}
-        let videoResults = {}; // Store as {position: {url, thumbnail, posturl}}
-        let thumbnailResults = {}; // Store thumbnails by position
+        const isTrue = (val) => {
+            return val === true || val === 'true' || val === '1';
+        };
+
+        // Validate social media logic
+        if (isTrue(socialPayload.facebook) && facebookurl) {
+            throw new ApiError(400, "Cannot provide both facebook=true and facebookurl. Choose one.");
+        }
+        if (isTrue(socialPayload.instagram) && instagramurl) {
+            throw new ApiError(400, "Cannot provide both instagram=true and instagramurl. Choose one.");
+        }
+        if (isTrue(socialPayload.whatsapp) && whatsappnumberurl) {
+            throw new ApiError(400, "Cannot provide both whatsapp=true and whatsappnumberurl. Choose one.");
+        }
+        if (isTrue(socialPayload.storeLink) && storelinkurl) {
+            throw new ApiError(400, "Cannot provide both storeLink=true and storelinkurl. Choose one.");
+        }
+
+        let socialLinks = { socialLinks: {} };
+        try {
+            socialLinks = processSocialLinks(user, socialPayload);
+        } catch (socialError) {
+            if (socialError.message === "At least one social link required") {
+                socialLinks = { socialLinks: {} };
+            } else {
+                throw socialError;
+            }
+        }
+
+        updateProgress(20, 'Starting file uploads...');
+
+        // File upload tracking
+        let imageResults = {};
+        let videoResults = {};
+        let thumbnailResults = {};
         let audioUrls = [];
         let songUrls = [];
 
-        const uploadTasks = [];
+        const uploadPromises = [];
+        
+        // Calculate total upload items for progress calculation
+        let totalItems = 0;
+        let completedItems = 0;
+        
+        for (let i = 1; i <= 5; i++) {
+            if (req.files?.[`imageFile${i}`]?.[0]) totalItems++;
+            if (req.files?.[`thumbnail${i}`]?.[0]) totalItems++;
+            if (req.files?.[`videoFile${i}`]?.[0]) totalItems++;
+        }
+        if (req.files?.audioFiles?.length) totalItems += req.files.audioFiles.length;
+        if (req.files?.song?.length) totalItems += req.files.song.length;
 
-        // Handle numbered image files (imageFile1, imageFile2, etc.)
+        const trackUploadProgress = () => {
+    completedItems++;
+    if (totalItems > 0) {
+        const uploadProgress = Math.floor(20 + (completedItems / totalItems) * 50);
+        updateProgress(uploadProgress, `Uploading files... ${completedItems}/${totalItems}`);
+    }
+};
+
+        // Batch 1: Images
         for (let i = 1; i <= 5; i++) {
             const fieldName = `imageFile${i}`;
-            if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
-                uploadTasks.push(
+            if (req.files?.[fieldName]?.[0]) {
+                uploadPromises.push(
                     uploadResult(req.files[fieldName][0].path)
                         .then(result => {
-                            if (!result?.url) throw new Error(`Image file ${i} upload failed`);
-                            imageResults[i] = result.url;
+                            if (result?.url) imageResults[i] = result.url;
+                            trackUploadProgress();
+                            return { type: 'image', position: i, success: !!result?.url };
                         })
                         .catch(error => {
-                            throw new ApiError(400, `Image file ${i} upload failed: ${error.message}`);
+                            console.error(`Image ${i} upload failed:`, error);
+                            trackUploadProgress();
+                            return { type: 'image', position: i, success: false };
                         })
                 );
             }
         }
 
-        // Handle numbered thumbnail files (thumbnail1, thumbnail2, etc.)
+        // Batch 2: Thumbnails
         for (let i = 1; i <= 5; i++) {
             const fieldName = `thumbnail${i}`;
-            if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
-                uploadTasks.push(
+            if (req.files?.[fieldName]?.[0]) {
+                uploadPromises.push(
                     uploadResult(req.files[fieldName][0].path)
                         .then(result => {
-                            if (!result?.url) throw new Error(`Thumbnail ${i} upload failed`);
-                            thumbnailResults[i] = result.url;
+                            if (result?.url) thumbnailResults[i] = result.url;
+                            trackUploadProgress();
+                            return { type: 'thumbnail', position: i, success: !!result?.url };
                         })
                         .catch(error => {
-                            throw new ApiError(400, `Thumbnail ${i} upload failed: ${error.message}`);
+                            console.error(`Thumbnail ${i} upload failed:`, error);
+                            trackUploadProgress();
+                            return { type: 'thumbnail', position: i, success: false };
                         })
                 );
             }
         }
 
-        // Handle numbered video files (videoFile1, videoFile2, etc.)
+        await Promise.all(uploadPromises);
+        uploadPromises.length = 0;
+
+        updateProgress(70, 'Processing videos...');
+
+        // Batch 3: Videos
         for (let i = 1; i <= 5; i++) {
             const fieldName = `videoFile${i}`;
-            if (req.files?.[fieldName] && req.files[fieldName].length > 0) {
-                uploadTasks.push(
+            if (req.files?.[fieldName]?.[0]) {
+                uploadPromises.push(
                     uploadResult(req.files[fieldName][0].path)
-                        .then(async (result) => {
-                            if (!result?.url) throw new Error(`Video file ${i} upload failed`);
-                            
-                            const videoData = {
-                                url: result.url,
-                                thumbnail: null,
-                                posturl: null
-                            };
-
-                            // Handle thumbnail: use user-provided or generate if not provided
-                            if (thumbnailResults[i]) {
-                                // User provided thumbnail - use it
-                                videoData.thumbnail = thumbnailResults[i];
-                            } else {
-                                // No user thumbnail - generate one using ffmpeg
-                                try {
-                                    const generatedThumbnail = await generatePostUrl(req.files[fieldName][0].path);
-                                    if (generatedThumbnail) {
-                                        videoData.thumbnail = generatedThumbnail;
-                                    }
-                                } catch (thumbError) {
-                                    console.warn(`Failed to generate thumbnail for video ${i}:`, thumbError.message);
-                                }
+                        .then(result => {
+                            if (result?.url) {
+                                videoResults[i] = {
+                                    url: result.url,
+                                    thumbnail: thumbnailResults[i] || null
+                                };
                             }
-
-                            // Generate post URL only if user didn't provide thumbnail for this video
-                            if (!thumbnailResults[i]) {
-                                try {
-                                    const postUrl = await generatePostUrl(req.files[fieldName][0].path);
-                                    if (postUrl) {
-                                        videoData.posturl = postUrl;
-                                    }
-                                } catch (postUrlError) {
-                                    console.warn(`Failed to generate post URL for video ${i}:`, postUrlError.message);
-                                }
-                            }
-
-                            videoResults[i] = videoData;
+                            trackUploadProgress();
+                            return { type: 'video', position: i, success: !!result?.url };
                         })
                         .catch(error => {
-                            throw new ApiError(400, `Video file ${i} upload failed: ${error.message}`);
+                            console.error(`Video ${i} upload failed:`, error);
+                            trackUploadProgress();
+                            return { type: 'video', position: i, success: false };
                         })
                 );
             }
         }
 
-        // Handle audio files (keeping original structure)
+        // Batch 4: Audio
         if (req.files?.audioFiles?.length) {
-            uploadTasks.push(
+            uploadPromises.push(
                 uploadMultipleFiles(req.files.audioFiles, 'audio')
-                    .then(urls => audioUrls = urls)
+                    .then(urls => {
+                        audioUrls = urls;
+                        trackUploadProgress();
+                        return { type: 'audio', success: true };
+                    })
+                    .catch(error => {
+                        console.error('Audio upload failed:', error);
+                        trackUploadProgress();
+                        return { type: 'audio', success: false };
+                    })
             );
         }
 
-        // Handle song files (keeping original structure)
+        // Batch 5: Songs
         if (req.files?.song?.length) {
-            uploadTasks.push(
+            uploadPromises.push(
                 uploadMultipleFiles(req.files.song, 'song')
-                    .then(urls => songUrls = urls)
+                    .then(urls => {
+                        songUrls = urls;
+                        trackUploadProgress();
+                        return { type: 'song', success: true };
+                    })
+                    .catch(error => {
+                        console.error('Song upload failed:', error);
+                        trackUploadProgress();
+                        return { type: 'song', success: false };
+                    })
             );
         }
 
-        // Wait for all uploads to complete
-        await Promise.all(uploadTasks);
+        await Promise.all(uploadPromises);
 
-        // Convert results to arrays with positions
+        updateProgress(80, 'Formatting media files...');
+
+        // Format results
         const formattedImageFiles = Object.keys(imageResults)
             .sort((a, b) => parseInt(a) - parseInt(b))
             .map(position => ({
@@ -1364,7 +1246,6 @@ const publishPost = asyncHandler(async (req, res) => {
                 Imageposition: parseInt(position)
             }));
 
-        // Helper to parse autoplay values from form-data
         const parseAutoplayFlag = (val) => {
             if (val === undefined || val === null) return false;
             if (typeof val === 'boolean') return val;
@@ -1372,16 +1253,11 @@ const publishPost = asyncHandler(async (req, res) => {
             return ['1', 'true', 'yes', 'on'].includes(s);
         };
 
-        // Parse autoplay flags
         const autoplayFlags = { 
-            1: autoplay1, 
-            2: autoplay2, 
-            3: autoplay3, 
-            4: autoplay4, 
-            5: autoplay5 
+            1: autoplay1, 2: autoplay2, 3: autoplay3, 
+            4: autoplay4, 5: autoplay5 
         };
 
-        // Format video files with all metadata
         const formattedVideoFiles = Object.keys(videoResults)
             .sort((a, b) => parseInt(a) - parseInt(b))
             .map(position => {
@@ -1391,21 +1267,12 @@ const publishPost = asyncHandler(async (req, res) => {
                     Videoposition: parseInt(position),
                     autoplay: parseAutoplayFlag(autoplayFlags[position])
                 };
-
-                // Add thumbnail if available
                 if (videoData.thumbnail) {
                     formattedVideo.thumbnail = videoData.thumbnail;
                 }
-
-                // Add post URL if available
-                if (videoData.posturl) {
-                    formattedVideo.posturl = videoData.posturl;
-                }
-
                 return formattedVideo;
             });
 
-        // Format store data
         const storeData = [];
         if (storeisActive || storeId || storeUrl) {
             storeData.push({
@@ -1416,7 +1283,6 @@ const publishPost = asyncHandler(async (req, res) => {
             });
         }
 
-        // Format product data
         const productData = [];
         if (productisActive || ProductId || productUrl) {
             productData.push({
@@ -1427,43 +1293,29 @@ const publishPost = asyncHandler(async (req, res) => {
             });
         }
 
-        // Handle new URL fields with conditions (validation already done above)
         const urlFields = {};
-        
-        // Facebook logic - if facebook is true, use user's profile data; if not true, save URL
         if (isTrue(socialPayload.facebook)) {
-            // Use the user's facebook from their profile (processed by processSocialLinks)
-            // The socialLinks already contains the correct facebook value from user profile
         } else if (facebookurl) {
             urlFields.facebookurl = facebookurl;
         }
         
-        // Instagram logic - if instagram is true, use user's profile data; if not true, save URL  
         if (isTrue(socialPayload.instagram)) {
-            // Use the user's instagram from their profile (processed by processSocialLinks)
-            // The socialLinks already contains the correct instagram value from user profile
         } else if (instagramurl) {
             urlFields.instagramurl = instagramurl;
         }
         
-        // WhatsApp logic - if whatsapp is true, use user's profile data; if not true, save URL
         if (isTrue(socialPayload.whatsapp)) {
-            // Use the user's whatsapp number from their profile (processed by processSocialLinks)
-            // The socialLinks already contains the correct whatsapp number from user profile
-            // Don't add anything to urlFields - let processSocialLinks handle it
         } else if (whatsappnumberurl) {
             urlFields.whatsappnumberurl = whatsappnumberurl;
         }
         
-        // Store link logic - if storeLink is true, use user's profile data; if not true, save URL
         if (isTrue(socialPayload.storeLink)) {
-            // Use the user's storeLink from their profile (processed by processSocialLinks)
-            // The socialLinks already contains the correct storeLink value from user profile
         } else if (storelinkurl) {
             urlFields.storelinkurl = storelinkurl;
         }
 
-        // Create post data
+        updateProgress(90, 'Creating post...');
+
         const postData = {
             title,
             description,
@@ -1476,16 +1328,14 @@ const publishPost = asyncHandler(async (req, res) => {
             pattern: pattern || 'single',
             owner: user._id,
             ...socialLinks.socialLinks,
-            ...urlFields  // Add the conditional URL fields
+            ...urlFields
         };
 
-        // Add arrays only if they have content
         if (formattedImageFiles.length > 0) postData.imageFiles = formattedImageFiles;
         if (formattedVideoFiles.length > 0) postData.videoFiles = formattedVideoFiles;
         if (storeData.length > 0) postData.store = storeData;
         if (productData.length > 0) postData.product = productData;
 
-        // Remove undefined fields
         Object.keys(postData).forEach(key => {
             if (postData[key] === undefined) {
                 delete postData[key];
@@ -1494,21 +1344,43 @@ const publishPost = asyncHandler(async (req, res) => {
 
         const post = await Post.create(postData);
 
-        // Populate owner details for response
+        updateProgress(95, 'Finalizing...');
+
         const populatedPost = await Post.findById(post._id)
             .populate('owner', 'username fullName avatar')
             .populate('store.storeId')
             .populate('product.ProductId')
             .lean();
 
+        updateProgress(100, 'Post created successfully!');
+
+        // Clean up progress data
+        setTimeout(() => {
+            progressStore.delete(req.userVerfied._id.toString());
+        }, 5000);
+
         return res.status(200).json(
             new ApiResponse(201, pruneEmptyMediaFields(populatedPost), "Post created successfully")
         );
     } catch (error) {
         console.error('Post creation error:', error);
+        // progressStore.delete(userId); // Clean up on error
+        progressStore.delete(req.userVerfied._id.toString());
         handleSocialLinkError(error);
     }
+    // finally {
+    //     // Optional: ensure cleanup happens
+    //     setTimeout(() => {
+    //         progressStore.delete(req.userVerfied._id.toString());
+    //     }, 5000);
+    // }
 });
+
+
+
+
+
+
 
 // Helper function to validate numbered media files
 const validateNumberedMediaFiles = (files) => {

@@ -249,15 +249,15 @@ song:[{
     pattern: {
     type: String,
     enum: [
-      'single', // One media file
+      '1', // One media file
       
-      'grid_2x2', // 4 items in 2x2 grid
+      '2x2', // 4 items in 2x2 grid
        
-      'double', // 2 horizontal items
+      '2', // 2 horizontal items
 
-      'grid_1_2', // 1 large + 2 small (L pattern)
+      '1x2', // 1 large + 2 small (L pattern)
        
-      'grid_1_3', // 1 large + 3 small
+      '1x3', // 1 large + 3 small
       
       'carousel',
     //   'linear', // Linear arrangement
@@ -265,8 +265,27 @@ song:[{
     //   'story', // Story-style vertical
     
     ],
-    default: 'single'
+    default: '1'
   },
+
+ postType:{
+    type: String,
+    enum: [
+        // if there are all images in post
+        'image', 
+    //    if there are all videos in post
+        'video', 
+    //    if there is only audio in post
+        'audio', 
+    //    if there is only text in post
+        'text', 
+        // if there are  image and video both in post
+        'mixed'
+    ],
+    // default: 'image'
+
+ }
+,
 
 
 
@@ -310,6 +329,9 @@ song:[{
         default: 0
     }
 ,
+ 
+
+
 
   // Comments count (comments stored separately)
   commentCount: {

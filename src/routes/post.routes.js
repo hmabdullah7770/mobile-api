@@ -11,6 +11,7 @@ import {
 } from "../controllers/post.controller.js";
 import VerifyJwt from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
+import { progressStore } from '../utils/progressStore.js'
 
 const router = express.Router();
 
@@ -95,6 +96,43 @@ router.get("/:postId/social/:linkType", incrementSocialLinkView);
 
 // Remove specific media files from post
 router.patch("/:postId/remove-media", VerifyJwt, removeMediaFiles);
+
+
+
+//progress bar
+
+
+
+router.get("/progress", VerifyJwt, (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    
+    const userId = req.userVerfied._id.toString();
+    
+    const sendProgress = () => {
+        const progressData = progressStore.get(userId);
+        
+        if (progressData) {
+            res.write(`data: ${JSON.stringify(progressData)}\n\n`);
+            
+            if (progressData.progress >= 100) {
+                res.end();
+                return;
+            }
+        }
+    };
+    
+    // Send progress every 500ms
+    const interval = setInterval(sendProgress, 500);
+    
+    req.on('close', () => {
+        clearInterval(interval);
+        res.end();
+    });
+});
+
+
 
 export default router;
 
