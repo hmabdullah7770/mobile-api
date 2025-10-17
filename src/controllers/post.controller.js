@@ -1649,6 +1649,14 @@ const updatePost = asyncHandler(async (req, res) => {
     }
 });
 
+
+
+//if the Creator delete the  post the the user who bid on that post will also be deleted
+
+// so add a permoission to return the other user bid who insvest before delete 
+
+
+
 // Delete post
 const deletePost = asyncHandler(async (req, res) => {
     const { postId } = req.params
