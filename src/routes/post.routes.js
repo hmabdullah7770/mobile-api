@@ -15,6 +15,51 @@ import { progressStore } from '../utils/progressStore.js'
 
 const router = express.Router();
 
+
+
+//progress bar
+
+
+
+router.get("/progress", VerifyJwt, (req, res) => {
+    // CRITICAL: Set SSE headers IMMEDIATELY
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+    
+    // Send initial connection confirmation
+    res.write(': connected\n\n'); // Heartbeat comment
+    
+    const userId = req.userVerfied._id.toString();
+    
+    const sendProgress = () => {
+        const progressData = progressStore.get(userId);
+        
+        if (progressData) {
+            // CORRECT SSE FORMAT: "data: " prefix + double newline
+            res.write(`data: ${JSON.stringify(progressData)}\n\n`);
+            
+            if (progressData.progress >= 100) {
+                setTimeout(() => res.end(), 500); // Give time for client to receive
+                return;
+            }
+        }
+    };
+    
+    // Send immediately, then every 500ms
+    sendProgress();
+    const interval = setInterval(sendProgress, 500);
+    
+    req.on('close', () => {
+        clearInterval(interval);
+        if (!res.writableEnded) {
+            res.end();
+        }
+    });
+});
+
+
 // Get all posts
 router.get("/getall", VerifyJwt, getAllPosts);
 
@@ -99,38 +144,6 @@ router.patch("/:postId/remove-media", VerifyJwt, removeMediaFiles);
 
 
 
-//progress bar
-
-
-
-router.get("/progress", VerifyJwt, (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    
-    const userId = req.userVerfied._id.toString();
-    
-    const sendProgress = () => {
-        const progressData = progressStore.get(userId);
-        
-        if (progressData) {
-            res.write(`data: ${JSON.stringify(progressData)}\n\n`);
-            
-            if (progressData.progress >= 100) {
-                res.end();
-                return;
-            }
-        }
-    };
-    
-    // Send progress every 500ms
-    const interval = setInterval(sendProgress, 500);
-    
-    req.on('close', () => {
-        clearInterval(interval);
-        res.end();
-    });
-});
 
 
 

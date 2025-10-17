@@ -1325,7 +1325,7 @@ const publishPost = asyncHandler(async (req, res) => {
             imagecount: formattedImageFiles.length,
             videocount: formattedVideoFiles.length,
             audiocount: audioUrls.length,
-            pattern: pattern || 'single',
+            pattern: pattern || '1',
             owner: user._id,
             ...socialLinks.socialLinks,
             ...urlFields
