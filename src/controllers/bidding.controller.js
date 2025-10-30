@@ -13,7 +13,7 @@ import mongoose from "mongoose";
 // ============================================
 const addBidToPost = asyncHandler(async (req, res) => {
     const { postId, productId, storeId, owner, bidAmount, message } = req.body;
-    const userId = req.user._id;
+    const userId = req.userVerfied._id;;
 
     // === Validation ===
     if (!postId || !productId || !storeId || !owner || !bidAmount) {
@@ -74,7 +74,7 @@ const addBidToPost = asyncHandler(async (req, res) => {
 // ============================================
 const addBidToOtherUser = asyncHandler(async (req, res) => {
     const { postId, productId, storeId, owner, bidAmount, message, bidForUserId } = req.body;
-    const userId = req.user._id;
+    const userId = req.userVerfied._id;
 
     // === Validation ===
     if (!postId || !productId || !storeId || !owner || !bidAmount || !bidForUserId) {
@@ -147,7 +147,7 @@ const addBidToOtherUser = asyncHandler(async (req, res) => {
 // ============================================
 const getOtherUsersBids = asyncHandler(async (req, res) => {
     const { postId } = req.params;
-    const userId = req.user._id;
+    const userId = req.userVerfied._id;
     const { page = 1, limit = 10 } = req.query;
 
     // === Validation ===
@@ -340,7 +340,7 @@ const getAllBidsOfUser = asyncHandler(async (req, res) => {
 const updateBid = asyncHandler(async (req, res) => {
     const { bidId } = req.params;
     const { bidAmount, message } = req.body;
-    const userId = req.user._id;
+    const userId = req.userVerfied._id;
 
     // === Validation ===
     if (!mongoose.isValidObjectId(bidId)) {
@@ -390,7 +390,7 @@ const updateBid = asyncHandler(async (req, res) => {
 const updateOtherUserBid = asyncHandler(async (req, res) => {
     const { bidId } = req.params;
     const { bidAmount, message } = req.body;
-    const userId = req.user._id;
+    const userId = req.userVerfied._id;
 
     // === Validation ===
     if (!mongoose.isValidObjectId(bidId)) {
@@ -442,7 +442,7 @@ const updateOtherUserBid = asyncHandler(async (req, res) => {
 // ============================================
 const deleteBid = asyncHandler(async (req, res) => {
     const { bidId } = req.params;
-    const userId = req.user._id;
+    const userId = req.userVerfied._id;
 
     // === Validation ===
     if (!mongoose.isValidObjectId(bidId)) {

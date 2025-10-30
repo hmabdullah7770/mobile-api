@@ -8,12 +8,16 @@ import {Post} from '../models/post.model.js'
 import mongoose from 'mongoose';
 
 
+
 //🚀 getpostByCotegoury 
 
 export const getPostsByCategory = asyncHandler(async (req, res) => {
   const { categoury, adminpassword, page , limit  } = req.query;
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const parsedLimit = parseInt(limit);
+
+  const loggedInUserId = req.userVerfied._id;
+
 
   // Input validation
   if (!adminpassword) {
@@ -76,6 +80,94 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
       
       // Unwind owner array
       { $unwind: "$owner" },
+
+
+//  lookup for bidding 
+
+
+
+      ...(loggedInUserId
+        ? [
+            // 👇 Lookup only the logged-in user's bid for each post
+            {
+              $lookup: {
+                from: "biddings",
+                let: { postId: "$_id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $and: [
+                          { $eq: ["$postId", "$$postId"] },
+                          { $eq: ["$userId", new mongoose.Types.ObjectId(loggedInUserId)] },
+                        ],
+                      },
+                    },
+                  },
+                  { $project: { bidAmount: 1 } },
+                ],
+                as: "myBid",
+              },
+            },
+            {
+              $addFields: {
+                hasBidded: { $gt: [{ $size: "$myBid" }, 0] },
+                myBidAmount: {
+                  $cond: {
+                    if: { $gt: [{ $size: "$myBid" }, 0] },
+                    then: { $arrayElemAt: ["$myBid.bidAmount", 0] },
+                    else: null,
+                  },
+                },
+              },
+            },
+            { $project: { myBid: 0 } },
+          
+       
+
+
+   //lookup for rating 
+
+
+   {
+              $lookup: {
+                from: "ratings",
+                let: { postId: "$_id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $and: [
+                          { $eq: ["$postId", "$$postId"] },
+                          { $eq: ["$owner", new mongoose.Types.ObjectId(loggedInUserId)] }
+                        ]
+                      }
+                    }
+                  },
+                  { $project: { rating: 1 } }
+                ],
+                as: "myRating"
+              }
+            },
+            {
+              $addFields: {
+                hasRated: { $gt: [{ $size: "$myRating" }, 0] },
+                myRatingValue: {
+                  $cond: {
+                    if: { $gt: [{ $size: "$myRating" }, 0] },
+                    then: { $arrayElemAt: ["$myRating.rating", 0] },
+                    else: null
+                  }
+                }
+              }
+            },
+            { $project: { myRating: 0 } }
+          ]
+        : []),
+
+
+
+
       
       // Project required fields
       {
@@ -134,6 +226,14 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
           views: 1,
           averageRating: 1,
           isPublished: 1,
+          // for bidding  
+          hasBidded: 1,     // 👈 added
+          myBidAmount: 1,   // 👈 added
+
+
+          // for Rating info
+          hasRated: 1,
+          myRatingValue: 1
 
         }
       }

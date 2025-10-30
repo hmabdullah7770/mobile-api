@@ -33,12 +33,13 @@ const ratingSchema = new Schema(
     }
 );
 
-ratingSchema.index({ contentId: 1, contentType: 1, owner: 1 }, { unique: true });
+
 
 ratingSchema.plugin(mongooseAggregatePaginate);
 
 // Add indexes for frequent queries
-ratingSchema.index({ contentId: 1, contentType: 1 });
+// ratingSchema.index({ contentId: 1, contentType: 1 });
+ratingSchema.index({ postId: 1, owner: 1 }, { unique: true });
 ratingSchema.index({ owner: 1 });
 ratingSchema.index({ rating: -1 });
 
