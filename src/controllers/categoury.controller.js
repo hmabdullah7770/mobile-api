@@ -81,13 +81,38 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
       {
         $project: {
           store: 1,
+          product:1,
           title: 1,
+          
+          // Social links
+           facebook: 1,
+          instagram: 1,
+          whatsapp: 1,
+          storeLink: 1,
+          // social lInks urls
+          facebookurl :1
+          , instagramurl:1, 
+          whatsappnumberurl:1, 
+          storelinkurl:1,
+        
+
+
           description: 1,
           content: 1,
           category: 1,
           thumbnail: 1,
           imageFiles:1,
           videoFiles:1,
+          audioFile:1,
+
+     //missing fields
+          totalRating: 1,
+          ratingCount: 1,
+          totalViews: 1,
+          commentCount: 1,
+          
+
+
           videocount: 1,
           imagecount: 1,
           audiocount: 1,

@@ -260,6 +260,8 @@ song:[{
       '1x3', // 1 large + 3 small
       
       'carousel',
+
+       'carousel arrow',
     //   'linear', // Linear arrangement
     //   'masonry', // Pinterest-style masonry
     //   'story', // Story-style vertical

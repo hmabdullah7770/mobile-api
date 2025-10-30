@@ -1,80 +1,97 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
-
-
-
-//if the Creator delete the  post the the user who bid on that post will also be deleted
-
-// so add a permoission to return the other user bid who insvest before delete 
-
-
 
 const biddingSchema = new Schema(
     {
+        // The user who is placing the bid (the bidder)
         userId: {
-            type: String,
-            required: true
-        },
-        // Using a more generic approach for the content reference
-       postId: {
             type: mongoose.Schema.Types.ObjectId,
-            required: true
+            ref: "User",
+            required: true,
+            index: true
         },
+        
+        // The post being bid on
+        postId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Post",
+            required: true,
+            index: true
+        },
+        
+        // Product related to the bid
         productId: {
-            type: String,
-            // enum: ["card", "video"],
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Product",
             required: true
         },
 
-      StoreId: {
-            type: String,
-            // enum: ["card", "video"],
+        // Store related to the bid
+        storeId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Store",
             required: true
         },
 
+        // Owner of the post (who receives the bid)
         owner: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true
-        }
-,
-        
-       addotheruserId:{
-
-        type: String,   
-        required: true,
-
-       },
-
-        
-        numberofbids: {
-                type: String, 
-            default: 0
+            required: true,
+            index: true
         },
 
+        // User for whom the bid is being placed (optional)
+        // If null = bid is for the bidder themselves
+        // If set = bid is for another user
+        bidForUserId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+            index: true
+        },
+        
+        // Bid amount
+        bidAmount: {
+            type: Number,
+            required: true,
+            min: 1
+        },
 
+        // Optional message with the bid
+        message: {
+            type: String,
+            maxlength: 500,
+            trim: true,
+            default: ""
+        }
     },
     {
         timestamps: true
     }
-)
+);
 
-commentSchema.plugin(mongooseAggregatePaginate)
+// Indexes for performance
+biddingSchema.index({ postId: 1, bidAmount: -1 });
+biddingSchema.index({ userId: 1, createdAt: -1 });
+biddingSchema.index({ bidForUserId: 1, bidAmount: -1 });
 
+// Plugin for pagination
+biddingSchema.plugin(mongooseAggregatePaginate);
 
-
-
-// In comment.model.js
-biddingSchema.static('findByIdAndDelete', async function(id) {
-    // First delete all replies associated with this comment
-    await this.deleteMany({ parentComment: id });
+// Pre-save validation
+biddingSchema.pre('save', async function(next) {
+    // Prevent user from bidding on their own post
+    if (this.userId.toString() === this.owner.toString()) {
+        throw new Error("You cannot bid on your own post");
+    }
     
-    // Then delete the comment itself
-    return this.findOneAndDelete({ _id: id });
-  });
+    // If bidding for someone else, ensure it's not the post owner
+    if (this.bidForUserId && this.bidForUserId.toString() === this.owner.toString()) {
+        throw new Error("Cannot bid for the post owner");
+    }
+    
+    next();
+});
 
-
-
-export const Bidding = mongoose.model("Bidding", biddingSchema)
-
-
+export const Bidding = mongoose.model("Bidding", biddingSchema);

@@ -46,6 +46,7 @@ import categouryRouter from "./routes/categoury.routes.js"
 import bannerRoutes  from "./routes/banner.routes.js"
 import postRouter  from './routes/post.routes.js'
 import newcommentsRouter from "./routes/newcomment.routes.js"
+import biddingRoutes from "./routes/bidding.routes.js"
 // import likeRouter from "./routes/like.routes.js"
 // import playlistRouter from "./routes/playlist.routes.js"
 // import dashboardRouter from "./routes/dashboard.routes.js"
@@ -66,6 +67,7 @@ app.use("/api/v1/categouries", categouryRouter)
 app.use("/api/v1/banner", bannerRoutes); 
 app.use("/api/v1/post", postRouter)
 app.use("/api/v1/newcomments", newcommentsRouter)
+app.use("/api/v1/bidding", biddingRoutes)
 // app.use("/api/v1/likes", likeRouter)
 // app.use("/api/v1/playlist", playlistRouter)
 // app.use("/api/v1/dashboard", dashboardRouter)
