@@ -74,6 +74,9 @@ const biddingSchema = new Schema(
 // Indexes for performance
 biddingSchema.index({ postId: 1, bidAmount: -1 });
 biddingSchema.index({ userId: 1, createdAt: -1 });
+// ✅ Create compound index for performance
+biddingSchema.index({ postId: 1, userId: 1 });
+
 biddingSchema.index({ bidForUserId: 1, bidAmount: -1 });
 
 // Plugin for pagination

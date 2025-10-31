@@ -351,6 +351,9 @@ postSchema.static('findByIdAndDelete', async function(id) {
 
 postSchema.plugin(mongooseAggregatePaginate)
 
+// ✅ Optimized compound index for your category query
+postSchema.index({ category: 1, isPublished: 1, createdAt: -1 });
+
 // ============ OPTIMIZED INDEXES ============
 // Text search index
 postSchema.index({ title: "text", description: "text", category: "text" });

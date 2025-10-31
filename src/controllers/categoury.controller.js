@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from '../models/user.model.js';
 import {Post} from '../models/post.model.js'
 import mongoose from 'mongoose';
+import { moveSyntheticComments } from 'typescript';
 
 
 
@@ -161,9 +162,49 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
                 }
               }
             },
-            { $project: { myRating: 0 } }
-          ]
-        : []),
+            { $project: { myRating: 0 } },
+           
+            // ✅ comment lookup
+       {
+        $lookup: {
+          from: "newcomments",
+          let: { postId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$postId", "$$postId"] },
+                    { $eq: ["$owner", new mongoose.Types.ObjectId(loggedInUserId)] },
+                    { $eq: ["$isReply", false] }
+                  ]
+                }
+              }
+            },
+            { $sort: { createdAt: -1 } },
+            {
+              $project: {
+                _id: 1,
+                content: 1,
+                audioUrl: 1,
+                videoUrl: 1,
+                stickerUrl: 1,
+                createdAt: 1
+              }
+            }
+          ],
+          as: "myComments"
+        }
+      },
+      {
+        $addFields: {
+          hasCommented: { $gt: [{ $size: "$myComments" }, 0] },
+          myCommentCount: { $size: "$myComments" }
+        }
+      }
+    ]
+  : []),
+    
 
 
 
@@ -234,6 +275,11 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
           // for Rating info
           hasRated: 1,
           myRatingValue: 1
+
+     // for comment info
+          , hasCommented: 1,
+          myCommentCount: 1,
+          myComments: 1
 
         }
       }
