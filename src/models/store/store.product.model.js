@@ -134,6 +134,29 @@ const productSchema = new Schema({
         default: []
     },
 
+
+   ordersalltime: {
+        type: Number,
+        default: 0
+    },
+
+    //  orderpermonth: {
+    //     type: Number,
+    //     default: 0
+    // },
+
+    // orderperyear: {
+    //     type: Number,
+    //     default: 0
+    // },
+
+    // orderperweek: {
+    //     type: Number,
+    //     default: 0
+    // },
+
+
+
      // variants = [],
     // specifications = [],
     // tags = []

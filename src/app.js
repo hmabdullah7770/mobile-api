@@ -104,12 +104,19 @@ import threeDVideoRoutes from './routes/store/store.3dvideo.routes.js';
 import carouselRoutes from './routes/store/store.carousel.routes.js'
 import orderRoutes from './routes/store/store.order.routes.js'
 
+import  alltimeproducts from './routes/store/Topsellingproduct/store.alltimeproducts.routes.js'
+
+// import alltimestore  from './routes/store/Topsellingproduct/store.alltimestore.routes.js'
+
+
 app.use('/api/v1/stores', storeRoutes);
 app.use('/api/v1/stores', storebannerRoutes);
 app.use('/api/v1/stores', productRoutes);
 app.use('/api/v1/stores', threeDVideoRoutes);
 app.use('/api/v1/stores', carouselRoutes)
 app.use('/api/v1/stores',orderRoutes)
+
+app.use('/api/v1/stores', alltimeproducts);
 
 
 //middleware to convert all the error to json format

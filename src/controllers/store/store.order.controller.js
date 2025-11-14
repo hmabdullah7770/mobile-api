@@ -178,6 +178,10 @@ export const createOrder = asyncHandler(async (req, res) => {
 
     // Validate and populate items
     const populatedItems = [];
+    
+    // for alltime selling product increment
+    const productIdsToUpdate = []; // ✅ CREATE THIS ARRAY
+    
     for (const item of items) {
         const { productId, quantity } = item;
 
@@ -188,10 +192,13 @@ export const createOrder = asyncHandler(async (req, res) => {
 
         // Find the product in the specified store
         const product = await Product.findOne({ _id: productId, storeId });
+        
         if (!product) {
             throw new ApiError(404, `Product with ID ${productId} not found in this store`);
         }
 
+           // ✅ ADD PRODUCT ID TO UPDATE LIST
+        productIdsToUpdate.push(productId);
 
           // Populate item details from the product
           populatedItems.push({
@@ -232,6 +239,17 @@ export const createOrder = asyncHandler(async (req, res) => {
         orderStatus: 'pending',
         notes
     });
+
+
+
+ // Increment ordersalltime for each product in the order
+    await Product.updateMany(
+        { _id: { $in: productIdsToUpdate } },
+        { $inc: { ordersalltime: 1 } }
+    );
+
+
+
 
     // Send notification to store owner
     order.isNotified = true;
