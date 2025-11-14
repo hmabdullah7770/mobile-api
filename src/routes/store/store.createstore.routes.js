@@ -8,13 +8,24 @@ import {
     getStoreById,
     updateStore,
     deleteStore,
+    rateStore,
+
+
+    
+    getTopRatedStores,
+    getUserRatedStores,
     togglePublishStatus
 } from '../../controllers/store/store.createstore.controller.js';
 
 const router = express.Router();
 
+
+router.get('/top-rated', getTopRatedStores);
+
 // Routes that require authentication
 router.use(VerfyJwt);
+
+
 
 // Create a new store
 router.post(
@@ -25,8 +36,20 @@ router.post(
     createStore
 );
 
+
+ router.post( '/rating-store', rateStore)
 // Get all stores for the authenticated user
 router.get('/user-stores', getUserStores);
+
+
+// Get all stores for the authenticated user with top ratinga
+// router.get('/get-rated-stores', getTopRatedStores);
+
+// Get stores that the user has rated
+router.get('/user-rated-stores', getUserRatedStores);
+
+
+
 
 // Get a specific store by ID
 router.get('/:storeId', getStoreById);

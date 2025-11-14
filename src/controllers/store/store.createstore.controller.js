@@ -6,6 +6,10 @@ import { uploadResult } from '../../utils/Claudnary.js'
 import mongoose from 'mongoose';
 import { User } from "../../models/user.model.js";
 
+// import StoreStoreRating from "../../models/store/store_StoreRating.model.js";
+import StoreRating from "../../models/store/store_rating.model.js";
+
+
 //for multiple store for one user he pay for it and we create another api may be also another model
 
 // Create a new store
@@ -177,6 +181,8 @@ export const getUserStores = asyncHandler(async (req, res) => {
     );
 });
 
+
+
 // Get a specific store by ID
 export const getStoreById = asyncHandler(async (req, res) => {
     const { storeId } = req.params;
@@ -324,5 +330,302 @@ export const togglePublishStatus = asyncHandler(async (req, res) => {
     
     return res.status(200).json(
         new ApiResponse(200, store, `Store ${store.isPublished ? 'published' : 'unpublished'} successfully`)
+    );
+});
+
+
+
+
+//rating
+
+
+// Add these controllers to your store.createstore.controller.js file
+
+// Rate a store
+export const rateStore = asyncHandler(async (req, res) => {
+    const { storeId, rating } = req.body;
+    const userId = req.userVerfied._id;
+
+    // Validate required fields
+    if (!storeId || !rating) {
+        throw new ApiError(400, "Store ID and rating are required");
+    }
+
+    // Validate rating value (1-5)
+    if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+        throw new ApiError(400, "Rating must be an integer between 1 and 5");
+    }
+
+    // Check if store exists
+    const store = await CreateStore.findById(storeId);
+    if (!store) {
+        throw new ApiError(404, "Store not found");
+    }
+
+    // Prevent users from rating their own store
+    if (store.owner.toString() === userId.toString()) {
+        throw new ApiError(403, "You cannot rate your own store");
+    }
+
+    // Check if user has already rated this store
+    const existingRating = await StoreRating.findOne({
+        store: storeId,
+        user: userId
+    });
+
+    if (existingRating) {
+        // Update existing rating
+        existingRating.rating = rating;
+        await existingRating.save();
+
+        // Recalculate average rating
+        await updateStoreRating(storeId);
+
+        return res.status(200).json(
+            new ApiResponse(200, existingRating, "Rating updated successfully")
+        );
+    }
+
+    // Create new rating
+    const newRating = await StoreRating.create({
+        store: storeId,
+        user: userId,
+        rating: rating
+    });
+
+    // Update store's average rating
+    await updateStoreRating(storeId);
+
+    return res.status(201).json(
+        new ApiResponse(201, newRating, "Store rated successfully")
+    );
+});
+
+// Helper function to calculate and update store's average rating
+const updateStoreRating = async (storeId) => {
+    const result = await StoreRating.aggregate([
+        {
+            $match: { store: new mongoose.Types.ObjectId(storeId) }
+        },
+        {
+            $group: {
+                _id: "$store",
+                averageRating: { $avg: "$rating" },
+                totalRatings: { $sum: 1 }
+            }
+        }
+    ]);
+
+    if (result.length > 0) {
+        const { averageRating, totalRatings } = result[0];
+        
+        await CreateStore.findByIdAndUpdate(
+            storeId,
+            {
+                rating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+                totalRatings: totalRatings
+            }
+        );
+    } else {
+        // No ratings, reset to 0
+        await CreateStore.findByIdAndUpdate(
+            storeId,
+            {
+                rating: 0,
+                totalRatings: 0
+            }
+        );
+    }
+};
+
+// Get stores sorted by highest average rating
+export const getTopRatedStores = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 10, category, storeType } = req.query;
+
+    // Build match conditions
+    const matchConditions = {};
+    
+    if (category) {
+        matchConditions.category = category;
+    }
+    
+    if (storeType) {
+        matchConditions.storeType = storeType;
+    }
+
+    const aggregationPipeline = [
+        // Match conditions (filter by category/storeType if provided)
+        ...(Object.keys(matchConditions).length > 0 ? [{ $match: matchConditions }] : []),
+        
+        // Lookup to get owner details
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        {
+            $unwind: "$ownerDetails"
+        },
+        
+        // Lookup to get all ratings for each store
+        {
+            $lookup: {
+                from: "storeratings",
+                localField: "_id",
+                foreignField: "store",
+                as: "ratings"
+            }
+        },
+        
+        // Calculate average rating and total ratings
+        {
+            $addFields: {
+                averageRating: {
+                    $cond: {
+                        if: { $gt: [{ $size: "$ratings" }, 0] },
+                        then: { $avg: "$ratings.rating" },
+                        else: 0
+                    }
+                },
+                totalRatings: { $size: "$ratings" }
+            }
+        },
+        
+        // Sort by average rating (highest first), then by total ratings
+        {
+            $sort: {
+                averageRating: -1,
+                totalRatings: -1,
+                createdAt: -1
+            }
+        },
+        
+        // Project the fields we want to return
+        {
+            $project: {
+                _id: 1,
+                category: 1,
+                storeType: 1,
+                storeName: 1,
+                storeLogo: 1,
+                productName: 1,
+                clickCount: 1,
+                rating: 1,
+                totalRatings: 1,
+                averageRating: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                owner: 1,
+                ownerDetails: {
+                    _id: 1,
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1
+                },
+                ratings: 0 // Exclude the ratings array from final output
+            }
+        }
+    ];
+
+    // Apply pagination
+    const options = {
+        page: parseInt(page),
+        limit: parseInt(limit)
+    };
+
+    const stores = await CreateStore.aggregatePaginate(
+        CreateStore.aggregate(aggregationPipeline),
+        options
+    );
+
+    return res.status(200).json(
+        new ApiResponse(200, stores, "Top rated stores retrieved successfully")
+    );
+});
+
+// Get user's rated stores (stores the current user has rated)
+export const getUserRatedStores = asyncHandler(async (req, res) => {
+    const userId = req.userVerfied._id;
+    const { page = 1, limit = 10 } = req.query;
+
+    const aggregationPipeline = [
+        // Match ratings by current user
+        {
+            $match: { user: new mongoose.Types.ObjectId(userId) }
+        },
+        
+        // Lookup store details
+        {
+            $lookup: {
+                from: "createstores",
+                localField: "store",
+                foreignField: "_id",
+                as: "storeDetails"
+            }
+        },
+        {
+            $unwind: "$storeDetails"
+        },
+        
+        // Lookup store owner details
+        {
+            $lookup: {
+                from: "users",
+                localField: "storeDetails.owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        {
+            $unwind: "$ownerDetails"
+        },
+        
+        // Sort by rating date (most recent first)
+        {
+            $sort: { createdAt: -1 }
+        },
+        
+        // Project the fields
+        {
+            $project: {
+                _id: 1,
+                rating: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                store: {
+                    _id: "$storeDetails._id",
+                    storeName: "$storeDetails.storeName",
+                    storeLogo: "$storeDetails.storeLogo",
+                    category: "$storeDetails.category",
+                    storeType: "$storeDetails.storeType",
+                    productName: "$storeDetails.productName",
+                    rating: "$storeDetails.rating",
+                    totalRatings: "$storeDetails.totalRatings"
+                },
+                owner: {
+                    _id: "$ownerDetails._id",
+                    username: "$ownerDetails.username",
+                    fullName: "$ownerDetails.fullName",
+                    avatar: "$ownerDetails.avatar"
+                }
+            }
+        }
+    ];
+
+    const options = {
+        page: parseInt(page),
+        limit: parseInt(limit)
+    };
+
+    const ratedStores = await StoreRating.aggregatePaginate(
+       StoreRating.aggregate(aggregationPipeline),
+        options
+    );
+
+    return res.status(200).json(
+        new ApiResponse(200, ratedStores, "User rated stores retrieved successfully")
     );
 });

@@ -6,7 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from '../models/user.model.js';
 import {Post} from '../models/post.model.js'
 import mongoose from 'mongoose';
-import { moveSyntheticComments } from 'typescript';
+// import { moveSyntheticComments } from 'typescript';
 
 
 
