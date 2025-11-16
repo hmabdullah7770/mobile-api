@@ -3,12 +3,20 @@ import CreateStore from "../models/store/store.createstore.model.js";
 
 // Middleware to verify if the user is the owner of a store
 const verifyStoreOwner = async (req, res, next) => {
+      console.log("In VrfiyStore middleware")
     console.log("Route:", req.originalUrl, "Params:", req.params)
     try {
          const  {storeId}  = req.params || req.body
            // Correctly check for storeId in both places
         //    const storeId = req.params.storeId || req.body.storeId;
+       
+       
+       
         // const storeId = req.params.storeId || req.body.storeId;
+       
+
+       
+     
         if (!storeId) {
             throw new ApiError(400, "Store ID is required");
         }

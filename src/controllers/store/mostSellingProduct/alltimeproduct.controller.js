@@ -11,6 +11,8 @@ import mongoose from "mongoose";
 export const getAllTimeProducts = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, category, sort = 'ordersalltime:desc' } = req.query;
     
+
+    console.log("IN ALL time products controller")
     // Build filter object
     const filter = {};
     

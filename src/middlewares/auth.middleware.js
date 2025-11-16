@@ -21,6 +21,8 @@ const validateTokenTiming = (decodedToken, toleranceMs = 30000) => {
 
 const VerfyJwt =async (req,res,next)=>{
 
+
+  
     //verified the login user
     try{
 
@@ -30,6 +32,7 @@ const VerfyJwt =async (req,res,next)=>{
 
     
      
+    console.log("In Vrfijwt")
      
      if(!token){
 
@@ -62,6 +65,7 @@ const VerfyJwt =async (req,res,next)=>{
       
         req.userVerfied = user
 
+      
         next()
     }
     catch(error){

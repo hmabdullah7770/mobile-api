@@ -181,6 +181,8 @@ export const createOrder = asyncHandler(async (req, res) => {
     
     // for alltime selling product increment
     const productIdsToUpdate = []; // ✅ CREATE THIS ARRAY
+
+    const storeIdsToUpdate = []; // ✅ CREATE THIS ARRAY
     
     for (const item of items) {
         const { productId, quantity } = item;
@@ -199,6 +201,14 @@ export const createOrder = asyncHandler(async (req, res) => {
 
            // ✅ ADD PRODUCT ID TO UPDATE LIST
         productIdsToUpdate.push(productId);
+
+
+            // ✅ ADD PRODUCT ID TO UPDATE LIST
+        storeIdsToUpdate.push(storeId);
+
+
+
+
 
           // Populate item details from the product
           populatedItems.push({
@@ -246,6 +256,13 @@ export const createOrder = asyncHandler(async (req, res) => {
     await Product.updateMany(
         { _id: { $in: productIdsToUpdate } },
         { $inc: { ordersalltime: 1 } }
+    );
+
+
+     // Increment ordersalltime for each product in the order
+    await CreateStore.updateMany(
+        { _id: { $in: storeIdsToUpdate } },
+        { $inc: {  totalSells: 1 } }
     );
 
 

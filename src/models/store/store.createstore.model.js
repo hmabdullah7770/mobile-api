@@ -56,6 +56,11 @@ const createStoreSchema = new Schema({
         type: Number,
         default: 0
     }
+,
+    totalSells:{
+        type: Number,
+        default: 0
+    }
 
 }, { timestamps: true });
 
