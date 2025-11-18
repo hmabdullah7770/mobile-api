@@ -364,6 +364,9 @@ postSchema.index({ averageRating: -1 });
 postSchema.index({ totalViews: -1 });
 postSchema.index({ isPublished: 1 });
 
+
+postSchema.index({ productId: 1 });
+
 // Compound indexes for performance
 postSchema.index({ category: 1, createdAt: -1 });
 postSchema.index({ createdAt: -1 });
