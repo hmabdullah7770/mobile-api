@@ -107,11 +107,13 @@ import orderRoutes from './routes/store/store.order.routes.js'
 import  alltimeproducts from './routes/store/Topsellingproduct/store.alltimeproducts.routes.js'
 import alltimestore  from './routes/store/Topsellingstore/store.alltimestore.routes.js'
 
+import discountproduct from './routes/store/DiscountProducts/store.discountproductandpost.route.js'
 
 // import alltimestore  from './routes/store/Topsellingproduct/store.alltimestore.routes.js'
 
 app.use('/api/v1/stores', alltimeproducts);
 app.use('/api/v1/stores', alltimestore);
+app.use('/api/v1/stores', discountproduct);
 app.use('/api/v1/stores', storeRoutes);
 app.use('/api/v1/stores', storebannerRoutes);
 app.use('/api/v1/stores', productRoutes);

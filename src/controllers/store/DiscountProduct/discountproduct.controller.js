@@ -210,8 +210,8 @@ export const getlessthan100price = asyncHandler(async (req, res) => {
     // Build filter object for FREE products
     const filter = {
         // productDiscount: 100,  // 100% discount
-        productPrice: { $gte: 100 }, // Price should be 0 or more
-        storeId: { $type: "objectId" } // Only valid store IDs
+           productPrice: { $lte: 100 }, // ✅ FIXED: Now truly "less than or equal to 100"
+        storeId: { $type: "objectId" }
     };
     
     // Add category filter if provided

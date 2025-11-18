@@ -2,7 +2,7 @@ import { asyncHandler } from "../../../utils/asyncHandler.js";
 import { ApiError } from "../../../utils/ApiErrors.js";
 import { ApiResponse } from "../../../utils/ApiResponse.js";
 import Product from "../../../models/store/store.product.model.js";
-import Post from "../../../models/post.model.js";
+import {Post} from "../../../models/post.model.js";
 
 
 export const get100PercentDiscountpost = asyncHandler(async (req, res) => {
@@ -181,7 +181,7 @@ export const get80PercentDiscountpost = asyncHandler(async (req, res) => {
 
 
 // Get products with discount between 50% and 80%
-export const get50To80PercentDiscount = asyncHandler(async (req, res) => {
+export const get50To80PercentDiscountpost = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, category } = req.query;
     
     console.log("IN 50-80% Discount Products Controller");
@@ -189,8 +189,8 @@ export const get50To80PercentDiscount = asyncHandler(async (req, res) => {
     // Build filter object for 50-80% discount
     const filter = {
         productDiscount: { 
-            $gte: 50,  // Greater than or equal to 50%
-            $lte: 80   // Less than or equal to 80%
+            $gt: 50,   // Greater than 50% (excludes 50%)
+            $lt: 80    // Less than 80% (excludes 80%)
         },
         storeId: { $type: "objectId" } // Only valid store IDs
     };
@@ -275,7 +275,7 @@ export const get50To80PercentDiscount = asyncHandler(async (req, res) => {
 
 
 // Get all FREE products (less than 100 doller ) sorted by most recent and most orders
-export const getlessthan100price = asyncHandler(async (req, res) => {
+export const getlessthan100pricepost = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, category } = req.query;
     
     console.log("IN Discount Products Controller");
@@ -283,8 +283,8 @@ export const getlessthan100price = asyncHandler(async (req, res) => {
     // Build filter object for FREE products
     const filter = {
         // productDiscount: 100,  // 100% discount
-        productPrice: { $gte: 100 }, // Price should be 0 or more
-        storeId: { $type: "objectId" } // Only valid store IDs
+              productPrice: { $lte: 100 }, // ✅ FIXED: Now truly "less than or equal to 100"
+        storeId: { $type: "objectId" }
     };
     
     // Add category filter if provided
