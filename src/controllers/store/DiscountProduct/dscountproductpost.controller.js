@@ -5,15 +5,132 @@ import Product from "../../../models/store/store.product.model.js";
 import {Post} from "../../../models/post.model.js";
 
 
+// export const get100PercentDiscountpost = asyncHandler(async (req, res) => {
+//     const { page = 1, limit = 10, category } = req.query;
+    
+//     console.log("IN Discount Products Controller");
+    
+//     // Build filter object for FREE products
+//     // const filter = {
+//     //     productDiscount: 100,
+//     //     productPrice: { $gte: 0 },
+//     //     storeId: { $type: "objectId" }
+//     // };
+
+
+//     const filter = {
+//     $or: [
+//         { 
+//             productDiscount: 100, 
+//             productPrice: 0 
+//         },
+//         { 
+//             productPrice: 0,
+//             $or: [
+//                 // { productDiscount: { $exists: false } },
+//                 // { productDiscount: null },
+//                 { productDiscount: 0 }
+//             ]
+//         }
+//     ],
+//     storeId: { $type: "objectId" }
+// };
+    
+//     if (category) {
+//         filter.category = category;
+//     }
+    
+//     const sortObject = { 
+//         ordersalltime: -1,
+//         createdAt: -1
+//     };
+    
+//     const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+//     // Execute count and find queries in parallel for better performance
+//     const [totalProducts, products] = await Promise.all([
+//         Product.countDocuments(filter),
+//         Product.find(filter)
+//             .sort(sortObject)
+//             .skip(skip)
+//             .limit(parseInt(limit))
+//             .populate({
+//                 path: 'storeId',
+//                 select: 'storeName storeImage storeDescription',
+//                 options: { strictPopulate: false }
+//             })
+//             .lean()
+//     ]);
+    
+//     // Extract product IDs
+//     const productIds = products.map(product => product._id);
+    
+//     // // Fetch posts using $in with proper indexing
+//     // const posts = await Post.find({
+//     //     productId: { $in: productIds }
+//     // })
+//     // .select('productId title content createdAt') // Select only needed fields
+//     // .lean();
+    
+
+    
+//  const posts = await Post.find({
+//         'product.ProductId': { $in: productIds }  // Note: 'product.ProductId' with capital P
+//     })
+//     .select('product title description imageFiles videoFiles createdAt')
+//     .lean();
+
+//     // Create a Map for O(1) lookup instead of O(n) filter
+//     const postsMap = new Map();
+//     posts.forEach(post => {
+//         const key = post.productId.toString();
+//         if (!postsMap.has(key)) {
+//             postsMap.set(key, []);
+//         }
+//         postsMap.get(key).push(post);
+//     });
+    
+//     // Map posts to products efficiently
+//     const productsWithPosts = products.map(product => ({
+//         ...product,
+//         posts: postsMap.get(product._id.toString()) || []
+//     }));
+    
+//     // Calculate pagination metadata
+//     const totalPages = Math.ceil(totalProducts / parseInt(limit));
+    
+//     return res.status(200).json(
+//         new ApiResponse(200, {
+//             products: productsWithPosts,
+//             pagination: {
+//                 totalProducts,
+//                 totalPages,
+//                 currentPage: parseInt(page),
+//                 limit: parseInt(limit),
+//                 hasNextPage: parseInt(page) < totalPages,
+//                 hasPrevPage: parseInt(page) > 1
+//             }
+//         }, "Free products retrieved successfully")
+//     );
+// });
+
 export const get100PercentDiscountpost = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, category } = req.query;
     
     console.log("IN Discount Products Controller");
     
-    // Build filter object for FREE products
+    // Build filter for products where price = 0 (with or without discount mentioned)
     const filter = {
-        productDiscount: 100,
-        productPrice: { $gte: 0 },
+        $or: [
+            { 
+                productDiscount: 100, 
+                productPrice: 0 
+            },
+            { 
+                productPrice: 0,
+                productDiscount: 0  // When discount is 0 or not set
+            }
+        ],
         storeId: { $type: "objectId" }
     };
     
@@ -43,24 +160,36 @@ export const get100PercentDiscountpost = asyncHandler(async (req, res) => {
             .lean()
     ]);
     
+
+     // ✅ CHECK: Throw error if no products found
+    if (!products || products.length === 0) {
+        throw new ApiError(404, "No products found with 100% discount");
+    }
+
     // Extract product IDs
     const productIds = products.map(product => product._id);
     
-    // Fetch posts using $in with proper indexing
+    // Fetch posts using the nested product.ProductId field
     const posts = await Post.find({
-        productId: { $in: productIds }
+        'product.ProductId': { $in: productIds }
     })
-    .select('productId title content createdAt') // Select only needed fields
+    .select('product title description imageFiles videoFiles createdAt')
     .lean();
     
-    // Create a Map for O(1) lookup instead of O(n) filter
+    // ✅ FIXED: Create a Map for O(1) lookup - extract ProductId from nested array
     const postsMap = new Map();
     posts.forEach(post => {
-        const key = post.productId.toString();
-        if (!postsMap.has(key)) {
-            postsMap.set(key, []);
+        // Extract ProductId from the nested product array
+        if (post.product && post.product.length > 0) {
+            const productId = post.product[0].ProductId;
+            if (productId) {
+                const key = productId.toString();
+                if (!postsMap.has(key)) {
+                    postsMap.set(key, []);
+                }
+                postsMap.get(key).push(post);
+            }
         }
-        postsMap.get(key).push(post);
     });
     
     // Map posts to products efficiently
@@ -86,6 +215,7 @@ export const get100PercentDiscountpost = asyncHandler(async (req, res) => {
         }, "Free products retrieved successfully")
     );
 });
+
 
 
 
@@ -133,24 +263,55 @@ export const get80PercentDiscountpost = asyncHandler(async (req, res) => {
             .lean()
     ]);
     
-    // Extract product IDs
-    const productIds = products.map(product => product._id);
+
+  // ✅ CHECK: Throw error if no products found
+    if (!products || products.length === 0) {
+        throw new ApiError(404, "No products found with 80% discount");
+    }
+
+    // // Extract product IDs
+    // const productIds = products.map(product => product._id);
     
-    // Fetch posts using $in with proper indexing
+    // // Fetch posts using $in with proper indexing
+    // const posts = await Post.find({
+    //     productId: { $in: productIds }
+    // })
+    // .select('productId title content createdAt') // Select only needed fields
+    // .lean();
+
+
+    // Fetch posts using the nested product.ProductId field
     const posts = await Post.find({
-        productId: { $in: productIds }
+        'product.ProductId': { $in: productIds }
     })
-    .select('productId title content createdAt') // Select only needed fields
+    .select('product title description imageFiles videoFiles createdAt')
     .lean();
     
     // Create a Map for O(1) lookup instead of O(n) filter
+    // const postsMap = new Map();
+    // posts.forEach(post => {
+    //     const key = post.productId.toString();
+    //     if (!postsMap.has(key)) {
+    //         postsMap.set(key, []);
+    //     }
+    //     postsMap.get(key).push(post);
+    // });
+
+
+    // ✅ FIXED: Create a Map for O(1) lookup - extract ProductId from nested array
     const postsMap = new Map();
     posts.forEach(post => {
-        const key = post.productId.toString();
-        if (!postsMap.has(key)) {
-            postsMap.set(key, []);
+        // Extract ProductId from the nested product array
+        if (post.product && post.product.length > 0) {
+            const productId = post.product[0].ProductId;
+            if (productId) {
+                const key = productId.toString();
+                if (!postsMap.has(key)) {
+                    postsMap.set(key, []);
+                }
+                postsMap.get(key).push(post);
+            }
         }
-        postsMap.get(key).push(post);
     });
     
     // Map posts to products efficiently
@@ -225,27 +386,57 @@ export const get50To80PercentDiscountpost = asyncHandler(async (req, res) => {
             })
             .lean()
     ]);
+
+    // ✅ CHECK: Throw error if no products found
+    if (!products || products.length === 0) {
+        throw new ApiError(404, "No products found between 50% and 80% discount");
+    }
     
     // Extract product IDs
     const productIds = products.map(product => product._id);
     
-    // Fetch posts using $in with proper indexing
+    // // Fetch posts using $in with proper indexing
+    // const posts = await Post.find({
+    //     productId: { $in: productIds }
+    // })
+    // .select('productId title content createdAt') // Select only needed fields
+    // .lean();
+    
+    // // Create a Map for O(1) lookup instead of O(n) filter
+    // const postsMap = new Map();
+    // posts.forEach(post => {
+    //     const key = post.productId.toString();
+    //     if (!postsMap.has(key)) {
+    //         postsMap.set(key, []);
+    //     }
+    //     postsMap.get(key).push(post);
+    // });
+    
+     // Fetch posts using the nested product.ProductId field
     const posts = await Post.find({
-        productId: { $in: productIds }
+        'product.ProductId': { $in: productIds }
     })
-    .select('productId title content createdAt') // Select only needed fields
+    .select('product title description imageFiles videoFiles createdAt')
     .lean();
     
-    // Create a Map for O(1) lookup instead of O(n) filter
+    // ✅ FIXED: Create a Map for O(1) lookup - extract ProductId from nested array
     const postsMap = new Map();
     posts.forEach(post => {
-        const key = post.productId.toString();
-        if (!postsMap.has(key)) {
-            postsMap.set(key, []);
+        // Extract ProductId from the nested product array
+        if (post.product && post.product.length > 0) {
+            const productId = post.product[0].ProductId;
+            if (productId) {
+                const key = productId.toString();
+                if (!postsMap.has(key)) {
+                    postsMap.set(key, []);
+                }
+                postsMap.get(key).push(post);
+            }
         }
-        postsMap.get(key).push(post);
     });
-    
+
+
+
     // Map posts to products efficiently
     const productsWithPosts = products.map(product => ({
         ...product,
@@ -266,7 +457,7 @@ export const get50To80PercentDiscountpost = asyncHandler(async (req, res) => {
                 hasNextPage: parseInt(page) < totalPages,
                 hasPrevPage: parseInt(page) > 1
             }
-        }, "50% Free products retrieved successfully")
+        }, "between 80% to 50% Free products retrieved successfully")
     );
 });
 
@@ -320,6 +511,14 @@ export const getlessthan100pricepost = asyncHandler(async (req, res) => {
             .lean()
     ]);
     
+
+
+     // ✅ CHECK: Throw error if no products found
+    if (!products || products.length === 0) {
+        throw new ApiError(404, "No products found less than 100 doller");
+    }
+
+
     // Extract product IDs
     const productIds = products.map(product => product._id);
     
