@@ -9,12 +9,21 @@ export const get100PercentDiscount = asyncHandler(async (req, res) => {
     
     console.log("IN Discount Products Controller");
     
-    // Build filter object for FREE products
+     // Build filter for products where price = 0 (with or without discount mentioned)
     const filter = {
-        productDiscount: 100,  // 100% discount
-        productPrice: { $gte: 0 }, // Price should be 0 or more
-        storeId: { $type: "objectId" } // Only valid store IDs
+        $or: [
+            { 
+                productDiscount: 100, 
+                productPrice: 0 
+            },
+            { 
+                productPrice: 0,
+                productDiscount: 0  // When discount is 0 or not set
+            }
+        ],
+        storeId: { $type: "objectId" }
     };
+    
     
     // Add category filter if provided
     if (category) {
@@ -47,6 +56,11 @@ export const get100PercentDiscount = asyncHandler(async (req, res) => {
         })
         .lean(); // Use lean() for better performance
     
+    if (!products || products.length === 0) {
+        throw new ApiError(404, "No products found with 100% discount");
+    }
+
+
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalProducts / parseInt(limit));
     const hasNextPage = parseInt(page) < totalPages;
@@ -73,12 +87,20 @@ export const get80PercentDiscount = asyncHandler(async (req, res) => {
     
     console.log("IN Discount Products Controller");
     
-    // Build filter object for FREE products
-    const filter = {
-        productDiscount: 80,  // 100% discount
-        // productPrice: { $gte: 0 }, // Price should be 0 or more
-        storeId: { $type: "objectId" } // Only valid store IDs
-    };
+    // // Build filter object for FREE products
+    // const filter = {
+    //     productDiscount: 80,  // 100% discount
+    //     // productPrice: { $gte: 0 }, // Price should be 0 or more
+    //     storeId: { $type: "objectId" } // Only valid store IDs
+    // };
+
+const filter = {
+     productDiscount: { 
+            $gte: 99,  // Greater than or equal to 50%
+            $lte: 80 ,  // Less than or equal to 80%
+        },
+     storeId: { $type: "objectId" } 
+    }
     
     // Add category filter if provided
     if (category) {
@@ -111,6 +133,10 @@ export const get80PercentDiscount = asyncHandler(async (req, res) => {
         })
         .lean(); // Use lean() for better performance
     
+            if (!products || products.length === 0) {
+                throw new ApiError(404, "No products found with 80% discount");
+            }
+        
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalProducts / parseInt(limit));
     const hasNextPage = parseInt(page) < totalPages;
@@ -178,6 +204,11 @@ export const get50To80PercentDiscount = asyncHandler(async (req, res) => {
             options: { strictPopulate: false }
         })
         .lean(); // Use lean() for better performance
+
+            if (!products || products.length === 0) {
+                throw new ApiError(404, "No products found with between 50% to 80% discount");
+            }
+        
     
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalProducts / parseInt(limit));
@@ -244,6 +275,11 @@ export const getlessthan100price = asyncHandler(async (req, res) => {
             options: { strictPopulate: false }
         })
         .lean(); // Use lean() for better performance
+
+            if (!products || products.length === 0) {
+                throw new ApiError(404, "No products found less than 100 ");
+            }
+        
     
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalProducts / parseInt(limit));
