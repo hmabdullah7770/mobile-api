@@ -1,4 +1,5 @@
-//unlink without await
+
+// with hls for videos chucks 
 
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
@@ -12,19 +13,56 @@ cloudinary.config({
     api_secret: process.env.CLAUDNARY_SECRET
 });
 
-const uploadResult = async (localfile) => {
+const uploadResult = async (localfile, isVideo = false) => {
     try {
         if (!localfile) {
             return null;
         }
 
+        // Auto-detect if not specified
+        if (!isVideo) {
+            const videoExtensions = ['mp4', 'avi', 'mov', 'mkv', 'webm', 'flv', 'wmv', 'wav', 'webp'];
+            const fileExtension = localfile.split('.').pop().toLowerCase();
+            isVideo = videoExtensions.includes(fileExtension);
+        }
+
+        // Determine upload options based on file type
+        const uploadOptions = {
+            resource_type: isVideo ? "video" : "auto"
+        };
+
+        // Add video-specific optimizations for HLS
+        if (isVideo) {
+            uploadOptions.eager = [
+                { 
+                    streaming_profile: "hd",
+                    format: "m3u8"
+                }
+            ];
+            uploadOptions.eager_async = true;
+        }
+
         // Upload to Cloudinary
         const response = await cloudinary.uploader.upload(
             localfile, 
-            { resource_type: "auto" }
+            uploadOptions
         );
 
         console.log('File uploaded to Cloudinary:', response.url);
+        
+        // Generate HLS URL if video
+        if (isVideo && response.public_id) {
+            const hlsUrl = cloudinary.url(response.public_id, {
+                resource_type: 'video',
+                format: 'm3u8',
+                transformation: [
+                    { streaming_profile: 'hd' }
+                ]
+            });
+            
+            response.hlsUrl = hlsUrl;
+            console.log('HLS URL:', hlsUrl);
+        }
         
         // OPTIMIZATION: Non-blocking async file deletion
         unlinkAsync(localfile).catch(err => 
@@ -48,6 +86,58 @@ const uploadResult = async (localfile) => {
 }
 
 export { uploadResult }
+
+
+// //unlink without await
+
+// import { v2 as cloudinary } from 'cloudinary';
+// import fs from 'fs';
+// import { promisify } from 'util';
+
+// const unlinkAsync = promisify(fs.unlink);
+
+// cloudinary.config({
+//     cloud_name: process.env.CLAUDNARY_NAME,
+//     api_key: process.env.CLAUDNARY_KEY,
+//     api_secret: process.env.CLAUDNARY_SECRET
+// });
+
+// const uploadResult = async (localfile) => {
+//     try {
+//         if (!localfile) {
+//             return null;
+//         }
+
+//         // Upload to Cloudinary
+//         const response = await cloudinary.uploader.upload(
+//             localfile, 
+//             { resource_type: "auto" }
+//         );
+
+//         console.log('File uploaded to Cloudinary:', response.url);
+        
+//         // OPTIMIZATION: Non-blocking async file deletion
+//         unlinkAsync(localfile).catch(err => 
+//             console.error('Failed to delete local file:', err)
+//         );
+        
+//         return response;
+       
+//     } catch (error) {
+//         console.error('Upload error:', error);
+        
+//         // Cleanup on error (non-blocking)
+//         if (fs.existsSync(localfile)) {
+//             unlinkAsync(localfile).catch(err => 
+//                 console.error('Failed to delete local file after error:', err)
+//             );
+//         }
+        
+//         return null;
+//     }
+// }
+
+// export { uploadResult }
 
 
 
