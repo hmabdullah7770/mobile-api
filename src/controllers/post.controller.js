@@ -1182,14 +1182,17 @@ const publishPost = asyncHandler(async (req, res) => {
                 uploadPromises.push(
                     uploadResult(req.files[fieldName][0].path)
                         .then(result => {
-                            if (result?.url) {
+                            // if (result?.url) {
+                            if (result?.hlsUrl) {
                                 videoResults[i] = {
-                                    url: result.url,
+                                    // url: result.url,
+                                     url: result.hlsUrl,  // ✅ Store ONLY HLS URL in url field
                                     thumbnail: thumbnailResults[i] || null
                                 };
                             }
                             trackUploadProgress();
-                            return { type: 'video', position: i, success: !!result?.url };
+                            // return { type: 'video', position: i, success: !!result?.url };
+                               return { type: 'video', position: i, success: !!result?.hlsUrl };  // ✅ Check hlsUrl
                         })
                         .catch(error => {
                             console.error(`Video ${i} upload failed:`, error);
@@ -1263,7 +1266,8 @@ const publishPost = asyncHandler(async (req, res) => {
             .map(position => {
                 const videoData = videoResults[position];
                 const formattedVideo = {
-                    url: videoData.url,
+                    // url: videoData.url,
+                    url: videoData.url,  // ✅ This is now the HLS .m3u8 URL
                     Videoposition: parseInt(position),
                     autoplay: parseAutoplayFlag(autoplayFlags[position])
                 };

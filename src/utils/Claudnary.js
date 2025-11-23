@@ -1,5 +1,6 @@
+// hls with cmaf
 
-// with hls for videos chucks 
+// with CMAF + HLS for modern video streaming
 
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
@@ -31,12 +32,18 @@ const uploadResult = async (localfile, isVideo = false) => {
             resource_type: isVideo ? "video" : "auto"
         };
 
-        // Add video-specific optimizations for HLS
+        // Add video-specific optimizations for CMAF + HLS
         if (isVideo) {
             uploadOptions.eager = [
+                // CMAF with HLS (modern, uses fMP4 segments)
                 { 
-                    streaming_profile: "hd",
+                    streaming_profile: "auto",  // ← This enables CMAF!
                     format: "m3u8"
+                },
+                // Optional: CMAF with DASH (for wider compatibility)
+                { 
+                    streaming_profile: "auto",
+                    format: "mpd"
                 }
             ];
             uploadOptions.eager_async = true;
@@ -50,18 +57,31 @@ const uploadResult = async (localfile, isVideo = false) => {
 
         console.log('File uploaded to Cloudinary:', response.url);
         
-        // Generate HLS URL if video
+        // Generate CMAF streaming URLs if video
         if (isVideo && response.public_id) {
+            // HLS URL with CMAF (fMP4 segments)
             const hlsUrl = cloudinary.url(response.public_id, {
                 resource_type: 'video',
                 format: 'm3u8',
                 transformation: [
-                    { streaming_profile: 'hd' }
+                    { streaming_profile: 'auto' }  // CMAF enabled
+                ]
+            });
+            
+            // DASH URL with CMAF (same segments, different manifest)
+            const dashUrl = cloudinary.url(response.public_id, {
+                resource_type: 'video',
+                format: 'mpd',
+                transformation: [
+                    { streaming_profile: 'auto' }  // CMAF enabled
                 ]
             });
             
             response.hlsUrl = hlsUrl;
-            console.log('HLS URL:', hlsUrl);
+            response.dashUrl = dashUrl;
+            
+            console.log('HLS URL (CMAF):', hlsUrl);
+            console.log('DASH URL (CMAF):', dashUrl);
         }
         
         // OPTIMIZATION: Non-blocking async file deletion
@@ -86,6 +106,96 @@ const uploadResult = async (localfile, isVideo = false) => {
 }
 
 export { uploadResult }
+
+
+
+// with hls for videos chucks 
+
+// import { v2 as cloudinary } from 'cloudinary';
+// import fs from 'fs';
+// import { promisify } from 'util';
+
+// const unlinkAsync = promisify(fs.unlink);
+
+// cloudinary.config({
+//     cloud_name: process.env.CLAUDNARY_NAME,
+//     api_key: process.env.CLAUDNARY_KEY,
+//     api_secret: process.env.CLAUDNARY_SECRET
+// });
+
+// const uploadResult = async (localfile, isVideo = false) => {
+//     try {
+//         if (!localfile) {
+//             return null;
+//         }
+
+//         // Auto-detect if not specified
+//         if (!isVideo) {
+//             const videoExtensions = ['mp4', 'avi', 'mov', 'mkv', 'webm', 'flv', 'wmv', 'wav', 'webp'];
+//             const fileExtension = localfile.split('.').pop().toLowerCase();
+//             isVideo = videoExtensions.includes(fileExtension);
+//         }
+
+//         // Determine upload options based on file type
+//         const uploadOptions = {
+//             resource_type: isVideo ? "video" : "auto"
+//         };
+
+//         // Add video-specific optimizations for HLS
+//         if (isVideo) {
+//             uploadOptions.eager = [
+//                 { 
+//                     streaming_profile: "hd",
+//                     format: "m3u8"
+//                 }
+//             ];
+//             uploadOptions.eager_async = true;
+//         }
+
+//         // Upload to Cloudinary
+//         const response = await cloudinary.uploader.upload(
+//             localfile, 
+//             uploadOptions
+//         );
+
+//         console.log('File uploaded to Cloudinary:', response.url);
+        
+//         // Generate HLS URL if video
+//         if (isVideo && response.public_id) {
+//             const hlsUrl = cloudinary.url(response.public_id, {
+//                 resource_type: 'video',
+//                 format: 'm3u8',
+//                 transformation: [
+//                     { streaming_profile: 'hd' }
+//                 ]
+//             });
+            
+//             response.hlsUrl = hlsUrl;
+//             console.log('HLS URL:', hlsUrl);
+//         }
+        
+//         // OPTIMIZATION: Non-blocking async file deletion
+//         unlinkAsync(localfile).catch(err => 
+//             console.error('Failed to delete local file:', err)
+//         );
+        
+//         return response;
+       
+//     } catch (error) {
+//         console.error('Upload error:', error);
+        
+//         // Cleanup on error (non-blocking)
+//         if (fs.existsSync(localfile)) {
+//             unlinkAsync(localfile).catch(err => 
+//                 console.error('Failed to delete local file after error:', err)
+//             );
+//         }
+        
+//         return null;
+//     }
+// }
+
+// export { uploadResult }
 
 
 // //unlink without await
