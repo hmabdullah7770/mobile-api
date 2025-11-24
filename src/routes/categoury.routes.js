@@ -2,6 +2,8 @@ import {
     
   getPostsByCategory,
 getFollowingUsersPosts ,
+  gethasVideoPostsByCategory,
+  getonlyImagePostsByCategory,
 
   getCatagoury,
     // getCatagourycount,
@@ -54,6 +56,14 @@ router.route("/following-unified-feed").get(VerfyJwt, getFollowingUsersUnifiedFe
 
 router.route('/getfollowingusersposts').get(VerfyJwt,getFollowingUsersPosts);
 router.route('/getpostsbycategory').get(VerfyJwt,getPostsByCategory);
+
+
+//videofeed and postfeed
+
+router.route('/gethasvideofeedbycategory').get(VerfyJwt,gethasVideoPostsByCategory);
+router.route('/getonlyimagefeedbycategory').get(VerfyJwt,getonlyImagePostsByCategory);
+
+// route.route().get()
 
 
 router.route()
