@@ -9,16 +9,14 @@ import mongoose from 'mongoose';
 // import { moveSyntheticComments } from 'typescript';
 
 
-
-//🚀 getpostByCotegoury 
+//getpostbyCategoury with following check
 
 export const getPostsByCategory = asyncHandler(async (req, res) => {
-  const { categoury, adminpassword, page , limit  } = req.query;
+  const { categoury, adminpassword, page, limit } = req.query;
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const parsedLimit = parseInt(limit);
 
   const loggedInUserId = req.userVerfied._id;
-
 
   // Input validation
   if (!adminpassword) {
@@ -71,8 +69,7 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
                 email: 1,
                 avatar: 1,
                 fullName: 1,
-                 stores: 1
-                 
+                stores: 1
               }
             }
           ]
@@ -82,14 +79,60 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
       // Unwind owner array
       { $unwind: "$owner" },
 
-
-//  lookup for bidding 
-
-
-
+      // ✅ NEW: Lookup follower/following status
       ...(loggedInUserId
         ? [
-            // 👇 Lookup only the logged-in user's bid for each post
+            // Check if logged-in user follows the post owner
+            {
+              $lookup: {
+                from: "followlists",
+                let: { postOwnerId: "$owner._id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $and: [
+                          { $eq: ["$follower", new mongoose.Types.ObjectId(loggedInUserId)] },
+                          { $eq: ["$following", "$$postOwnerId"] }
+                        ]
+                      }
+                    }
+                  },
+                  { $limit: 1 }
+                ],
+                as: "isFollowingOwner"
+              }
+            },
+            // Check if post owner follows the logged-in user
+            {
+              $lookup: {
+                from: "followlists",
+                let: { postOwnerId: "$owner._id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $and: [
+                          { $eq: ["$follower", "$$postOwnerId"] },
+                          { $eq: ["$following", new mongoose.Types.ObjectId(loggedInUserId)] }
+                        ]
+                      }
+                    }
+                  },
+                  { $limit: 1 }
+                ],
+                as: "isFollowerOfOwner"
+              }
+            },
+            // Add follow status fields
+            {
+              $addFields: {
+                isFollowing: { $gt: [{ $size: "$isFollowingOwner" }, 0] },
+                isFollower: { $gt: [{ $size: "$isFollowerOfOwner" }, 0] }
+              }
+            },
+
+            // Lookup for bidding 
             {
               $lookup: {
                 from: "biddings",
@@ -123,14 +166,9 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
               },
             },
             { $project: { myBid: 0 } },
-          
-       
 
-
-   //lookup for rating 
-
-
-   {
+            // Lookup for rating 
+            {
               $lookup: {
                 from: "ratings",
                 let: { postId: "$_id" },
@@ -163,95 +201,92 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
               }
             },
             { $project: { myRating: 0 } },
-           
-            // ✅ comment lookup
-       {
-        $lookup: {
-          from: "newcomments",
-          let: { postId: "$_id" },
-          pipeline: [
+
+            // Comment lookup
             {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$postId", "$$postId"] },
-                    { $eq: ["$owner", new mongoose.Types.ObjectId(loggedInUserId)] },
-                    { $eq: ["$isReply", false] }
-                  ]
-                }
+              $lookup: {
+                from: "newcomments",
+                let: { postId: "$_id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $and: [
+                          { $eq: ["$postId", "$$postId"] },
+                          { $eq: ["$owner", new mongoose.Types.ObjectId(loggedInUserId)] },
+                          { $eq: ["$isReply", false] }
+                        ]
+                      }
+                    }
+                  },
+                  { $sort: { createdAt: -1 } },
+                  {
+                    $project: {
+                      _id: 1,
+                      content: 1,
+                      audioUrl: 1,
+                      videoUrl: 1,
+                      stickerUrl: 1,
+                      createdAt: 1
+                    }
+                  }
+                ],
+                as: "myComments"
               }
             },
-            { $sort: { createdAt: -1 } },
             {
-              $project: {
-                _id: 1,
-                content: 1,
-                audioUrl: 1,
-                videoUrl: 1,
-                stickerUrl: 1,
-                createdAt: 1
+              $addFields: {
+                hasCommented: { $gt: [{ $size: "$myComments" }, 0] },
+                myCommentCount: { $size: "$myComments" }
               }
+            },
+            // Clean up temporary fields
+            { 
+              $project: { 
+                isFollowingOwner: 0, 
+                isFollowerOfOwner: 0 
+              } 
             }
-          ],
-          as: "myComments"
-        }
-      },
-      {
-        $addFields: {
-          hasCommented: { $gt: [{ $size: "$myComments" }, 0] },
-          myCommentCount: { $size: "$myComments" }
-        }
-      }
-    ]
-  : []),
-    
+          ]
+        : []),
 
-
-
-
-      
       // Project required fields
       {
         $project: {
           store: 1,
-          product:1,
+          product: 1,
           title: 1,
           
           // Social links
-           facebook: 1,
+          facebook: 1,
           instagram: 1,
           whatsapp: 1,
           storeLink: 1,
-          // social lInks urls
-          facebookurl :1
-          , instagramurl:1, 
-          whatsappnumberurl:1, 
-          storelinkurl:1,
-        
-
+          // Social links urls
+          facebookurl: 1,
+          instagramurl: 1,
+          whatsappnumberurl: 1,
+          storelinkurl: 1,
 
           description: 1,
           content: 1,
           category: 1,
           thumbnail: 1,
-          imageFiles:1,
-          videoFiles:1,
-          audioFile:1,
+          imageFiles: 1,
+          videoFiles: 1,
+          audioFile: 1,
 
-     //missing fields
+          // Missing fields
           totalRating: 1,
           ratingCount: 1,
           totalViews: 1,
           commentCount: 1,
-          
-
 
           videocount: 1,
           imagecount: 1,
           audiocount: 1,
-          pattern:1,
-          song:1,
-          // owner: 1,
+          pattern: 1,
+          song: 1,
 
           owner: {
             _id: "$owner._id",
@@ -267,20 +302,23 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
           views: 1,
           averageRating: 1,
           isPublished: 1,
-          // for bidding  
-          hasBidded: 1,     // 👈 added
-          myBidAmount: 1,   // 👈 added
+          
+          // For bidding  
+          hasBidded: 1,
+          myBidAmount: 1,
 
-
-          // for Rating info
+          // For Rating info
           hasRated: 1,
-          myRatingValue: 1
+          myRatingValue: 1,
 
-     // for comment info
-          , hasCommented: 1,
+          // For comment info
+          hasCommented: 1,
           myCommentCount: 1,
-          myComments: 1
+          myComments: 1,
 
+          // ✅ NEW: Follow status
+          isFollowing: 1,
+          isFollower: 1
         }
       }
     ];
@@ -315,6 +353,315 @@ export const getPostsByCategory = asyncHandler(async (req, res) => {
     throw new ApiError(500, `Database error: ${error.message}`);
   }
 });
+
+
+
+
+// //🚀 getpostByCotegoury 
+
+// export const getPostsByCategory = asyncHandler(async (req, res) => {
+//   const { categoury, adminpassword, page , limit  } = req.query;
+//   const skip = (parseInt(page) - 1) * parseInt(limit);
+//   const parsedLimit = parseInt(limit);
+
+//   const loggedInUserId = req.userVerfied._id;
+
+
+//   // Input validation
+//   if (!adminpassword) {
+//     throw new ApiError(400, "Admin password is required");
+//   }
+
+//   if (adminpassword !== "(Bunny)tota#34#") {
+//     throw new ApiError(403, "Access denied");
+//   }
+
+//   if (!categoury) {
+//     throw new ApiError(400, "Categoury name is required");
+//   }
+
+//   try {
+//     // Build match condition
+//     const matchCondition = {
+//       isPublished: true // Only fetch published posts
+//     };
+    
+//     if (categoury !== 'All') {
+//       matchCondition.category = categoury;
+//     }
+
+//     // 🚀 SINGLE ULTRA FAST QUERY
+//     const pipeline = [
+//       // Early filtering (uses index)
+//       { $match: matchCondition },
+      
+//       // Early sorting (uses index)
+//       { $sort: { createdAt: -1 } },
+      
+//       // Skip previous documents
+//       { $skip: skip },
+      
+//       // Get 1 extra to check if there's next page
+//       { $limit: parsedLimit + 1 },
+      
+//       // Get owner details
+//       {
+//         $lookup: {
+//           from: "users",
+//           localField: "owner",
+//           foreignField: "_id",
+//           as: "owner",
+//           pipeline: [
+//             {
+//               $project: {
+//                 username: 1,
+//                 email: 1,
+//                 avatar: 1,
+//                 fullName: 1,
+//                  stores: 1
+                 
+//               }
+//             }
+//           ]
+//         }
+//       },
+      
+//       // Unwind owner array
+//       { $unwind: "$owner" },
+
+
+// //  lookup for bidding 
+
+
+
+//       ...(loggedInUserId
+//         ? [
+//             // 👇 Lookup only the logged-in user's bid for each post
+//             {
+//               $lookup: {
+//                 from: "biddings",
+//                 let: { postId: "$_id" },
+//                 pipeline: [
+//                   {
+//                     $match: {
+//                       $expr: {
+//                         $and: [
+//                           { $eq: ["$postId", "$$postId"] },
+//                           { $eq: ["$userId", new mongoose.Types.ObjectId(loggedInUserId)] },
+//                         ],
+//                       },
+//                     },
+//                   },
+//                   { $project: { bidAmount: 1 } },
+//                 ],
+//                 as: "myBid",
+//               },
+//             },
+//             {
+//               $addFields: {
+//                 hasBidded: { $gt: [{ $size: "$myBid" }, 0] },
+//                 myBidAmount: {
+//                   $cond: {
+//                     if: { $gt: [{ $size: "$myBid" }, 0] },
+//                     then: { $arrayElemAt: ["$myBid.bidAmount", 0] },
+//                     else: null,
+//                   },
+//                 },
+//               },
+//             },
+//             { $project: { myBid: 0 } },
+          
+       
+
+
+//    //lookup for rating 
+
+
+//    {
+//               $lookup: {
+//                 from: "ratings",
+//                 let: { postId: "$_id" },
+//                 pipeline: [
+//                   {
+//                     $match: {
+//                       $expr: {
+//                         $and: [
+//                           { $eq: ["$postId", "$$postId"] },
+//                           { $eq: ["$owner", new mongoose.Types.ObjectId(loggedInUserId)] }
+//                         ]
+//                       }
+//                     }
+//                   },
+//                   { $project: { rating: 1 } }
+//                 ],
+//                 as: "myRating"
+//               }
+//             },
+//             {
+//               $addFields: {
+//                 hasRated: { $gt: [{ $size: "$myRating" }, 0] },
+//                 myRatingValue: {
+//                   $cond: {
+//                     if: { $gt: [{ $size: "$myRating" }, 0] },
+//                     then: { $arrayElemAt: ["$myRating.rating", 0] },
+//                     else: null
+//                   }
+//                 }
+//               }
+//             },
+//             { $project: { myRating: 0 } },
+           
+//             // ✅ comment lookup
+//        {
+//         $lookup: {
+//           from: "newcomments",
+//           let: { postId: "$_id" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $and: [
+//                     { $eq: ["$postId", "$$postId"] },
+//                     { $eq: ["$owner", new mongoose.Types.ObjectId(loggedInUserId)] },
+//                     { $eq: ["$isReply", false] }
+//                   ]
+//                 }
+//               }
+//             },
+//             { $sort: { createdAt: -1 } },
+//             {
+//               $project: {
+//                 _id: 1,
+//                 content: 1,
+//                 audioUrl: 1,
+//                 videoUrl: 1,
+//                 stickerUrl: 1,
+//                 createdAt: 1
+//               }
+//             }
+//           ],
+//           as: "myComments"
+//         }
+//       },
+//       {
+//         $addFields: {
+//           hasCommented: { $gt: [{ $size: "$myComments" }, 0] },
+//           myCommentCount: { $size: "$myComments" }
+//         }
+//       }
+//     ]
+//   : []),
+    
+
+
+
+
+      
+//       // Project required fields
+//       {
+//         $project: {
+//           store: 1,
+//           product:1,
+//           title: 1,
+          
+//           // Social links
+//            facebook: 1,
+//           instagram: 1,
+//           whatsapp: 1,
+//           storeLink: 1,
+//           // social lInks urls
+//           facebookurl :1
+//           , instagramurl:1, 
+//           whatsappnumberurl:1, 
+//           storelinkurl:1,
+        
+
+
+//           description: 1,
+//           content: 1,
+//           category: 1,
+//           thumbnail: 1,
+//           imageFiles:1,
+//           videoFiles:1,
+//           audioFile:1,
+
+//      //missing fields
+//           totalRating: 1,
+//           ratingCount: 1,
+//           totalViews: 1,
+//           commentCount: 1,
+          
+
+
+//           videocount: 1,
+//           imagecount: 1,
+//           audiocount: 1,
+//           pattern:1,
+//           song:1,
+//           // owner: 1,
+
+//           owner: {
+//             _id: "$owner._id",
+//             username: "$owner.username",
+//             email: "$owner.email",
+//             avatar: "$owner.avatar",
+//             fullName: "$owner.fullName",
+//             stores: { $cond: { if: "$store", then: "$owner.stores", else: "$$REMOVE" } }
+//           },
+//           createdAt: 1,
+//           updatedAt: 1,
+//           likes: 1,
+//           views: 1,
+//           averageRating: 1,
+//           isPublished: 1,
+//           // for bidding  
+//           hasBidded: 1,     // 👈 added
+//           myBidAmount: 1,   // 👈 added
+
+
+//           // for Rating info
+//           hasRated: 1,
+//           myRatingValue: 1
+
+//      // for comment info
+//           , hasCommented: 1,
+//           myCommentCount: 1,
+//           myComments: 1
+
+//         }
+//       }
+//     ];
+
+//     // Execute single query
+//     const posts = await Post.aggregate(pipeline);
+    
+//     // Check if there's more data
+//     const hasNextPage = posts.length > parsedLimit;
+//     if (hasNextPage) {
+//       posts.pop(); // Remove the extra item
+//     }
+
+//     if (posts.length === 0 && categoury !== 'All') {
+//       throw new ApiError(404, "No posts found in this category");
+//     }
+
+//     return res.status(200).json(
+//       new ApiResponse(200, `${categoury === 'All' ? 'All categories' : 'Category'} posts fetched successfully`, {
+//         posts,
+//         pagination: {
+//           currentPage: parseInt(page),
+//           itemsPerPage: parsedLimit,
+//           totalSkip: skip,
+//           hasNextPage,
+//           hasPrevPage: parseInt(page) > 1
+//         }
+//       })
+//     );
+
+//   } catch (error) {
+//     throw new ApiError(500, `Database error: ${error.message}`);
+//   }
+// });
 
 // get has video by categoury
 
@@ -394,7 +741,7 @@ export const gethasVideoPostsByCategory = asyncHandler(async (req, res) => {
       },
       
       // Unwind owner array
-      { $unwind: "$owner" },
+      { $unwind: "$owner" },   
 
 
 //  lookup for bidding 
