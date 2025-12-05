@@ -4,7 +4,7 @@ import {
 getFollowingUsersPosts ,
   gethasVideoPostsByCategory,
   getonlyImagePostsByCategory,
-
+getPostsByCategoryCousor,
   getCatagoury,
     // getCatagourycount,
     getAllCategouryName,
@@ -56,6 +56,9 @@ router.route("/following-unified-feed").get(VerfyJwt, getFollowingUsersUnifiedFe
 
 router.route('/getfollowingusersposts').get(VerfyJwt,getFollowingUsersPosts);
 router.route('/getpostsbycategory').get(VerfyJwt,getPostsByCategory);
+
+// cusor base pagination
+router.route('/getpostsbycategorycursor').get(VerfyJwt,getPostsByCategoryCousor);
 
 
 //videofeed and postfeed
