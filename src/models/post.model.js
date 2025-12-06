@@ -18,6 +18,22 @@ const postSchema = new Schema({
 
 
 
+
+     // ========== NEW UNIQUE IDs ==========
+    postIdUnique: {
+        type: String,
+        unique: true,      // Globally unique across all posts
+        required: true,
+        index: true
+    },
+    
+    inCategoryId: {
+        type: String,
+        required: true,
+        index: true
+    },
+
+
     store: [{
             
          storeisActive: {
@@ -373,6 +389,9 @@ postSchema.index({ createdAt: -1 });
 postSchema.index({ owner: 1, createdAt: -1 });
 postSchema.index({ isPublished: 1, category: 1, createdAt: -1 });
 postSchema.index({ isPublished: 1, createdAt: -1 });
+
+// Add compound index: inCategoryId is unique within each category
+postSchema.index({ category: 1, inCategoryId: 1 }, { unique: true });
 
 export const Post = mongoose.model("Post", postSchema);
 

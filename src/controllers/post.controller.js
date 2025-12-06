@@ -11,6 +11,100 @@ import Categoury from "../models/categoury.model.js"
 import { progressStore } from "../utils/progressStore.js";
 
 
+
+// ============================================
+// Import at the top of your controller file
+// ============================================
+import { PostUniqueIds } from '../models/postuniqueids.model.js';
+
+// ============================================
+// Helper function - Add this BEFORE publishPost
+// ============================================
+
+/**
+ * Generate both postIdUnique and inCategoryId for a new post
+ * OPTIMIZED: Runs both counter updates in parallel
+ * @param {string} category - The category of the post (or empty/null)
+ * @returns {Promise<{postIdUnique: string, inCategoryId: string}>}
+ */
+async function generatePostIds(category) {
+    try {
+        // ✅ Use "All" if category is empty, null, or undefined
+        const categoryName = category && category.trim() ? category : "All";
+        
+        // ✅ RUN BOTH COUNTER UPDATES IN PARALLEL (cuts time in half)
+        const [globalCounter, categoryCounter] = await Promise.all([
+            PostUniqueIds.findByIdAndUpdate(
+                "post_counter",
+                { $inc: { sequence: 1 } },
+                { new: true, upsert: true }
+            ),
+            PostUniqueIds.findByIdAndUpdate(
+                `category_counter_${categoryName}`,
+                { $inc: { sequence: 1 } },
+                { new: true, upsert: true }
+            )
+        ]);
+
+        // Generate IDs using categoryName (which might be "All")
+        const postIdUnique = `${categoryName}${String(globalCounter.sequence).padStart(10, '0')}`;
+        const inCategoryId = `${categoryName}${categoryCounter.sequence}`;
+
+        return { postIdUnique, inCategoryId };
+    } catch (error) {
+        console.error('Error generating post IDs:', error);
+        throw new ApiError(500, "Failed to generate post IDs");
+    }
+}
+
+
+
+
+
+// ============================================
+// // Import at the top of your controller file
+// // ============================================
+// import { PostUniqueIds } from '../models/postuniqueids.model.js';
+
+// // ============================================
+// // Helper function - Add this BEFORE publishPost
+// // ============================================
+
+// /**
+//  * Generate both postIdUnique and inCategoryId for a new post
+//  * OPTIMIZED: Runs both counter updates in parallel
+//  * @param {string} category - The category of the post
+//  * @returns {Promise<{postIdUnique: string, inCategoryId: string}>}
+//  */
+// async function generatePostIds(category) {
+//     try {
+//         // ✅ RUN BOTH COUNTER UPDATES IN PARALLEL (cuts time in half)
+//         const [globalCounter, categoryCounter] = await Promise.all([
+//             PostUniqueIds.findByIdAndUpdate(
+//                 "post_counter",
+//                 { $inc: { sequence: 1 } },
+//                 { new: true, upsert: true }
+//             ),
+//             PostUniqueIds.findByIdAndUpdate(
+//                 `category_counter_${category}`,
+//                 { $inc: { sequence: 1 } },
+//                 { new: true, upsert: true }
+//             )
+//         ]);
+
+//         // Generate IDs
+//         const postIdUnique = `${category}${String(globalCounter.sequence).padStart(10, '0')}`;
+//         const inCategoryId = `${category}${categoryCounter.sequence}`;
+
+//         return { postIdUnique, inCategoryId };
+//     } catch (error) {
+//         console.error('Error generating post IDs:', error);
+//         throw new ApiError(500, "Failed to generate post IDs");
+//     }
+// }
+
+
+
 // // Remove empty media arrays from response objects when counts are zero
 // const pruneEmptyMediaFields = (doc) => {
 //     if (!doc || typeof doc !== 'object') return doc;
@@ -1019,8 +1113,373 @@ const getPostById = asyncHandler(async (req, res) => {
 // with pregress bar
 
 
+// =============================================================================================================================
+
 // ============================================
 // BACKEND: post.controller.js - Modified publishPost
+// ============================================
+
+// const publishPost = asyncHandler(async (req, res) => {
+//     const { 
+//         title, description, category, pattern,
+//         storeisActive, storeIconSize, storeId, storeUrl,
+//         productisActive, productIconSize, ProductId, productUrl,
+//         autoplay1, autoplay2, autoplay3, autoplay4, autoplay5,
+//         facebookurl, instagramurl, whatsappnumberurl, storelinkurl,
+//         ...socialPayload 
+//     } = req.body;
+    
+//     // Progress tracking helper
+//     let progressPercentage = 0;
+//     const updateProgress = (percent, message) => {
+//         progressPercentage = percent;
+//         // Store progress in a shared cache (Redis recommended for production)
+//         // For now, we'll use a simple in-memory store
+//         progressStore.set(req.userVerfied._id.toString(), {
+//             progress: percent,
+//             message: message,
+//             timestamp: Date.now()
+//         });
+//     };
+
+//     try {
+//         updateProgress(5, 'Validating input data...');
+        
+//         // STEP 1: VALIDATE INPUT
+//         if (!category) throw new ApiError(400, "Category is required");
+//         validateNumberedMediaFiles(req.files || {});
+
+//         updateProgress(10, 'Fetching user data...');
+
+//         const [user, categoryExists] = await Promise.all([
+//             User.findById(req.userVerfied._id),
+//             Categoury.findOne({categouryname: category})
+//         ]);
+
+//         if (!user) throw new ApiError(404, "User not found");
+
+//         if (!categoryExists) {
+//             Categoury.create({categouryname: category}).catch(err => 
+//                 console.error('Category creation failed:', err)
+//             );
+//         }
+
+//         updateProgress(15, 'Processing social links...');
+
+//         const isTrue = (val) => {
+//             return val === true || val === 'true' || val === '1';
+//         };
+
+//         // Validate social media logic
+//         if (isTrue(socialPayload.facebook) && facebookurl) {
+//             throw new ApiError(400, "Cannot provide both facebook=true and facebookurl. Choose one.");
+//         }
+//         if (isTrue(socialPayload.instagram) && instagramurl) {
+//             throw new ApiError(400, "Cannot provide both instagram=true and instagramurl. Choose one.");
+//         }
+//         if (isTrue(socialPayload.whatsapp) && whatsappnumberurl) {
+//             throw new ApiError(400, "Cannot provide both whatsapp=true and whatsappnumberurl. Choose one.");
+//         }
+//         if (isTrue(socialPayload.storeLink) && storelinkurl) {
+//             throw new ApiError(400, "Cannot provide both storeLink=true and storelinkurl. Choose one.");
+//         }
+
+//         let socialLinks = { socialLinks: {} };
+//         try {
+//             socialLinks = processSocialLinks(user, socialPayload);
+//         } catch (socialError) {
+//             if (socialError.message === "At least one social link required") {
+//                 socialLinks = { socialLinks: {} };
+//             } else {
+//                 throw socialError;
+//             }
+//         }
+
+//         updateProgress(20, 'Starting file uploads...');
+
+//         // File upload tracking
+//         let imageResults = {};
+//         let videoResults = {};
+//         let thumbnailResults = {};
+//         let audioUrls = [];
+//         let songUrls = [];
+
+//         const uploadPromises = [];
+        
+//         // Calculate total upload items for progress calculation
+//         let totalItems = 0;
+//         let completedItems = 0;
+        
+//         for (let i = 1; i <= 5; i++) {
+//             if (req.files?.[`imageFile${i}`]?.[0]) totalItems++;
+//             if (req.files?.[`thumbnail${i}`]?.[0]) totalItems++;
+//             if (req.files?.[`videoFile${i}`]?.[0]) totalItems++;
+//         }
+//         if (req.files?.audioFiles?.length) totalItems += req.files.audioFiles.length;
+//         if (req.files?.song?.length) totalItems += req.files.song.length;
+
+//         const trackUploadProgress = () => {
+//     completedItems++;
+//     if (totalItems > 0) {
+//         const uploadProgress = Math.floor(20 + (completedItems / totalItems) * 50);
+//         updateProgress(uploadProgress, `Uploading files... ${completedItems}/${totalItems}`);
+//     }
+// };
+
+//         // Batch 1: Images
+//         for (let i = 1; i <= 5; i++) {
+//             const fieldName = `imageFile${i}`;
+//             if (req.files?.[fieldName]?.[0]) {
+//                 uploadPromises.push(
+//                     uploadResult(req.files[fieldName][0].path)
+//                         .then(result => {
+//                             if (result?.url) imageResults[i] = result.url;
+//                             trackUploadProgress();
+//                             return { type: 'image', position: i, success: !!result?.url };
+//                         })
+//                         .catch(error => {
+//                             console.error(`Image ${i} upload failed:`, error);
+//                             trackUploadProgress();
+//                             return { type: 'image', position: i, success: false };
+//                         })
+//                 );
+//             }
+//         }
+
+//         // Batch 2: Thumbnails
+//         for (let i = 1; i <= 5; i++) {
+//             const fieldName = `thumbnail${i}`;
+//             if (req.files?.[fieldName]?.[0]) {
+//                 uploadPromises.push(
+//                     uploadResult(req.files[fieldName][0].path)
+//                         .then(result => {
+//                             if (result?.url) thumbnailResults[i] = result.url;
+//                             trackUploadProgress();
+//                             return { type: 'thumbnail', position: i, success: !!result?.url };
+//                         })
+//                         .catch(error => {
+//                             console.error(`Thumbnail ${i} upload failed:`, error);
+//                             trackUploadProgress();
+//                             return { type: 'thumbnail', position: i, success: false };
+//                         })
+//                 );
+//             }
+//         }
+
+//         await Promise.all(uploadPromises);
+//         uploadPromises.length = 0;
+
+//         updateProgress(70, 'Processing videos...');
+
+//         // Batch 3: Videos
+//         for (let i = 1; i <= 5; i++) {
+//             const fieldName = `videoFile${i}`;
+//             if (req.files?.[fieldName]?.[0]) {
+//                 uploadPromises.push(
+//                     uploadResult(req.files[fieldName][0].path)
+//                         .then(result => {
+//                             // if (result?.url) {
+//                             if (result?.hlsUrl) {
+//                                 videoResults[i] = {
+//                                     // url: result.url,
+//                                      url: result.hlsUrl,  // ✅ Store ONLY HLS URL in url field
+//                                     thumbnail: thumbnailResults[i] || null
+//                                 };
+//                             }
+//                             trackUploadProgress();
+//                             // return { type: 'video', position: i, success: !!result?.url };
+//                                return { type: 'video', position: i, success: !!result?.hlsUrl };  // ✅ Check hlsUrl
+//                         })
+//                         .catch(error => {
+//                             console.error(`Video ${i} upload failed:`, error);
+//                             trackUploadProgress();
+//                             return { type: 'video', position: i, success: false };
+//                         })
+//                 );
+//             }
+//         }
+
+//         // Batch 4: Audio
+//         if (req.files?.audioFiles?.length) {
+//             uploadPromises.push(
+//                 uploadMultipleFiles(req.files.audioFiles, 'audio')
+//                     .then(urls => {
+//                         audioUrls = urls;
+//                         trackUploadProgress();
+//                         return { type: 'audio', success: true };
+//                     })
+//                     .catch(error => {
+//                         console.error('Audio upload failed:', error);
+//                         trackUploadProgress();
+//                         return { type: 'audio', success: false };
+//                     })
+//             );
+//         }
+
+//         // Batch 5: Songs
+//         if (req.files?.song?.length) {
+//             uploadPromises.push(
+//                 uploadMultipleFiles(req.files.song, 'song')
+//                     .then(urls => {
+//                         songUrls = urls;
+//                         trackUploadProgress();
+//                         return { type: 'song', success: true };
+//                     })
+//                     .catch(error => {
+//                         console.error('Song upload failed:', error);
+//                         trackUploadProgress();
+//                         return { type: 'song', success: false };
+//                     })
+//             );
+//         }
+
+//         await Promise.all(uploadPromises);
+
+//         updateProgress(80, 'Formatting media files...');
+
+//         // Format results
+//         const formattedImageFiles = Object.keys(imageResults)
+//             .sort((a, b) => parseInt(a) - parseInt(b))
+//             .map(position => ({
+//                 url: imageResults[position],
+//                 Imageposition: parseInt(position)
+//             }));
+
+//         const parseAutoplayFlag = (val) => {
+//             if (val === undefined || val === null) return false;
+//             if (typeof val === 'boolean') return val;
+//             const s = String(val).trim().toLowerCase();
+//             return ['1', 'true', 'yes', 'on'].includes(s);
+//         };
+
+//         const autoplayFlags = { 
+//             1: autoplay1, 2: autoplay2, 3: autoplay3, 
+//             4: autoplay4, 5: autoplay5 
+//         };
+
+//         const formattedVideoFiles = Object.keys(videoResults)
+//             .sort((a, b) => parseInt(a) - parseInt(b))
+//             .map(position => {
+//                 const videoData = videoResults[position];
+//                 const formattedVideo = {
+//                     // url: videoData.url,
+//                     url: videoData.url,  // ✅ This is now the HLS .m3u8 URL
+//                     Videoposition: parseInt(position),
+//                     autoplay: parseAutoplayFlag(autoplayFlags[position])
+//                 };
+//                 if (videoData.thumbnail) {
+//                     formattedVideo.thumbnail = videoData.thumbnail;
+//                 }
+//                 return formattedVideo;
+//             });
+
+//         const storeData = [];
+//         if (storeisActive || storeId || storeUrl) {
+//             storeData.push({
+//                 storeisActive: Boolean(storeisActive),
+//                 storeIconSize: storeIconSize || 'L',
+//                 storeId: storeId || undefined,
+//                 storeUrl: storeUrl || undefined
+//             });
+//         }
+
+//         const productData = [];
+//         if (productisActive || ProductId || productUrl) {
+//             productData.push({
+//                 productisActive: Boolean(productisActive),
+//                 productIconSize: productIconSize || 'S',
+//                 ProductId: ProductId || undefined,
+//                 productUrl: productUrl || undefined
+//             });
+//         }
+
+//         const urlFields = {};
+//         if (isTrue(socialPayload.facebook)) {
+//         } else if (facebookurl) {
+//             urlFields.facebookurl = facebookurl;
+//         }
+        
+//         if (isTrue(socialPayload.instagram)) {
+//         } else if (instagramurl) {
+//             urlFields.instagramurl = instagramurl;
+//         }
+        
+//         if (isTrue(socialPayload.whatsapp)) {
+//         } else if (whatsappnumberurl) {
+//             urlFields.whatsappnumberurl = whatsappnumberurl;
+//         }
+        
+//         if (isTrue(socialPayload.storeLink)) {
+//         } else if (storelinkurl) {
+//             urlFields.storelinkurl = storelinkurl;
+//         }
+
+//         updateProgress(90, 'Creating post...');
+
+//         const postData = {
+//             title,
+//             description,
+//             category,
+//             audioFile: audioUrls.length > 0 ? audioUrls[0] : undefined,
+//             song: songUrls.length > 0 ? songUrls : undefined,
+//             imagecount: formattedImageFiles.length,
+//             videocount: formattedVideoFiles.length,
+//             audiocount: audioUrls.length,
+//             pattern: pattern || '1',
+//             owner: user._id,
+//             ...socialLinks.socialLinks,
+//             ...urlFields
+//         };
+
+//         if (formattedImageFiles.length > 0) postData.imageFiles = formattedImageFiles;
+//         if (formattedVideoFiles.length > 0) postData.videoFiles = formattedVideoFiles;
+//         if (storeData.length > 0) postData.store = storeData;
+//         if (productData.length > 0) postData.product = productData;
+
+//         Object.keys(postData).forEach(key => {
+//             if (postData[key] === undefined) {
+//                 delete postData[key];
+//             }
+//         });
+
+//         const post = await Post.create(postData);
+
+//         updateProgress(95, 'Finalizing...');
+
+//         const populatedPost = await Post.findById(post._id)
+//             .populate('owner', 'username fullName avatar')
+//             .populate('store.storeId')
+//             .populate('product.ProductId')
+//             .lean();
+
+//         updateProgress(100, 'Post created successfully!');
+
+//         // Clean up progress data
+//         setTimeout(() => {
+//             progressStore.delete(req.userVerfied._id.toString());
+//         }, 5000);
+
+//         return res.status(200).json(
+//             new ApiResponse(201, pruneEmptyMediaFields(populatedPost), "Post created successfully")
+//         );
+//     } catch (error) {
+//         console.error('Post creation error:', error);
+//         // progressStore.delete(userId); // Clean up on error
+//         progressStore.delete(req.userVerfied._id.toString());
+//         handleSocialLinkError(error);
+//     }
+//     // finally {
+//     //     // Optional: ensure cleanup happens
+//     //     setTimeout(() => {
+//     //         progressStore.delete(req.userVerfied._id.toString());
+//     //     }, 5000);
+//     // }
+// });
+
+
+
+// ============================================
+// COMPLETE publishPost function
 // ============================================
 
 const publishPost = asyncHandler(async (req, res) => {
@@ -1037,8 +1496,6 @@ const publishPost = asyncHandler(async (req, res) => {
     let progressPercentage = 0;
     const updateProgress = (percent, message) => {
         progressPercentage = percent;
-        // Store progress in a shared cache (Redis recommended for production)
-        // For now, we'll use a simple in-memory store
         progressStore.set(req.userVerfied._id.toString(), {
             progress: percent,
             message: message,
@@ -1123,12 +1580,12 @@ const publishPost = asyncHandler(async (req, res) => {
         if (req.files?.song?.length) totalItems += req.files.song.length;
 
         const trackUploadProgress = () => {
-    completedItems++;
-    if (totalItems > 0) {
-        const uploadProgress = Math.floor(20 + (completedItems / totalItems) * 50);
-        updateProgress(uploadProgress, `Uploading files... ${completedItems}/${totalItems}`);
-    }
-};
+            completedItems++;
+            if (totalItems > 0) {
+                const uploadProgress = Math.floor(20 + (completedItems / totalItems) * 50);
+                updateProgress(uploadProgress, `Uploading files... ${completedItems}/${totalItems}`);
+            }
+        };
 
         // Batch 1: Images
         for (let i = 1; i <= 5; i++) {
@@ -1182,17 +1639,14 @@ const publishPost = asyncHandler(async (req, res) => {
                 uploadPromises.push(
                     uploadResult(req.files[fieldName][0].path)
                         .then(result => {
-                            // if (result?.url) {
                             if (result?.hlsUrl) {
                                 videoResults[i] = {
-                                    // url: result.url,
-                                     url: result.hlsUrl,  // ✅ Store ONLY HLS URL in url field
+                                    url: result.hlsUrl,  // ✅ Store ONLY HLS URL
                                     thumbnail: thumbnailResults[i] || null
                                 };
                             }
                             trackUploadProgress();
-                            // return { type: 'video', position: i, success: !!result?.url };
-                               return { type: 'video', position: i, success: !!result?.hlsUrl };  // ✅ Check hlsUrl
+                            return { type: 'video', position: i, success: !!result?.hlsUrl };
                         })
                         .catch(error => {
                             console.error(`Video ${i} upload failed:`, error);
@@ -1266,7 +1720,6 @@ const publishPost = asyncHandler(async (req, res) => {
             .map(position => {
                 const videoData = videoResults[position];
                 const formattedVideo = {
-                    // url: videoData.url,
                     url: videoData.url,  // ✅ This is now the HLS .m3u8 URL
                     Videoposition: parseInt(position),
                     autoplay: parseAutoplayFlag(autoplayFlags[position])
@@ -1318,9 +1771,23 @@ const publishPost = asyncHandler(async (req, res) => {
             urlFields.storelinkurl = storelinkurl;
         }
 
+        // ============================================
+        // ✅ GENERATE UNIQUE IDs (OPTION 1: PARALLEL)
+        // Adds only ~10-20ms to response time
+        // ============================================
+        updateProgress(88, 'Generating unique IDs...');
+        
+        const { postIdUnique, inCategoryId } = await generatePostIds(category);
+        
+        console.log(`✅ Generated IDs - postIdUnique: ${postIdUnique}, inCategoryId: ${inCategoryId}`);
+
         updateProgress(90, 'Creating post...');
 
         const postData = {
+            // 🆕 Add the generated IDs
+            postIdUnique,
+            inCategoryId,
+            // Existing fields
             title,
             description,
             category,
@@ -1368,17 +1835,11 @@ const publishPost = asyncHandler(async (req, res) => {
         );
     } catch (error) {
         console.error('Post creation error:', error);
-        // progressStore.delete(userId); // Clean up on error
         progressStore.delete(req.userVerfied._id.toString());
         handleSocialLinkError(error);
     }
-    // finally {
-    //     // Optional: ensure cleanup happens
-    //     setTimeout(() => {
-    //         progressStore.delete(req.userVerfied._id.toString());
-    //     }, 5000);
-    // }
 });
+
 
 
 
