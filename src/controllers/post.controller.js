@@ -21,42 +21,74 @@ import { PostUniqueIds } from '../models/postuniqueids.model.js';
 // Helper function - Add this BEFORE publishPost
 // ============================================
 
+
 /**
  * Generate both postIdUnique and inCategoryId for a new post
- * OPTIMIZED: Runs both counter updates in parallel
+ * IMPROVED: Handles duplicates with retry logic
  * @param {string} category - The category of the post (or empty/null)
  * @returns {Promise<{postIdUnique: string, inCategoryId: string}>}
  */
-async function generatePostIds(category) {
+async function generatePostIds(category, maxRetries = 3) {
     try {
-        // ✅ Use "All" if category is empty, null, or undefined
-        const categoryName = category && category.trim() ? category : "All";
+        // ✅ Use "All" for empty/null categories - keeps them grouped together
+        const categoryName = category && category.trim() ? category.trim() : "All";
         
-        // ✅ RUN BOTH COUNTER UPDATES IN PARALLEL (cuts time in half)
-        const [globalCounter, categoryCounter] = await Promise.all([
-            PostUniqueIds.findByIdAndUpdate(
-                "post_counter",
-                { $inc: { sequence: 1 } },
-                { new: true, upsert: true }
-            ),
-            PostUniqueIds.findByIdAndUpdate(
-                `category_counter_${categoryName}`,
-                { $inc: { sequence: 1 } },
-                { new: true, upsert: true }
-            )
-        ]);
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            // Run both counter updates in parallel
+            const [globalCounter, categoryCounter] = await Promise.all([
+                PostUniqueIds.findByIdAndUpdate(
+                    "post_counter",
+                    { $inc: { sequence: 1 } },
+                    { new: true, upsert: true }
+                ),
+                PostUniqueIds.findByIdAndUpdate(
+                    `category_counter_${categoryName}`,
+                    { $inc: { sequence: 1 } },
+                    { new: true, upsert: true }
+                )
+            ]);
 
-        // Generate IDs using categoryName (which might be "All")
-        const postIdUnique = `${categoryName}${String(globalCounter.sequence).padStart(10, '0')}`;
-        const inCategoryId = `${categoryName}${categoryCounter.sequence}`;
+            // Generate IDs
+            const postIdUnique = `${categoryName}${String(globalCounter.sequence).padStart(10, '0')}`;
+            const inCategoryId = `${categoryName}${categoryCounter.sequence}`;
 
-        return { postIdUnique, inCategoryId };
+            // ✅ CHECK FOR DUPLICATES (prevents E11000 errors)
+            const existingPost = await Post.findOne({
+                $or: [
+                    { postIdUnique },
+                    { category: categoryName, inCategoryId }
+                ]
+            }).lean();
+
+            if (!existingPost) {
+                console.log(`✅ Generated unique IDs - postIdUnique: ${postIdUnique}, inCategoryId: ${inCategoryId}`);
+                return { postIdUnique, inCategoryId };
+            }
+
+            // If duplicate found, log warning and retry
+            console.warn(`⚠️  Duplicate ID detected on attempt ${attempt}/${maxRetries}`);
+            console.warn(`   postIdUnique: ${postIdUnique}, inCategoryId: ${inCategoryId}`);
+            
+            if (attempt < maxRetries) {
+                // Small delay before retry to avoid race conditions
+                await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+            }
+        }
+
+        // If all retries failed, throw error
+        throw new Error(`Failed to generate unique post IDs after ${maxRetries} attempts. Please run the sync migration script.`);
+
     } catch (error) {
-        console.error('Error generating post IDs:', error);
+        console.error('❌ Error generating post IDs:', error);
+        
+        // Provide helpful error message
+        if (error.message.includes('Failed to generate unique')) {
+            throw new ApiError(500, "Unable to generate unique post IDs. Please contact support.");
+        }
+        
         throw new ApiError(500, "Failed to generate post IDs");
     }
 }
-
 
 
 
@@ -1790,7 +1822,8 @@ const publishPost = asyncHandler(async (req, res) => {
             // Existing fields
             title,
             description,
-            category,
+            // category,
+            category: category && category.trim() ? category.trim() : "All", // ✅ Store "All" if empty
             audioFile: audioUrls.length > 0 ? audioUrls[0] : undefined,
             song: songUrls.length > 0 ? songUrls : undefined,
             imagecount: formattedImageFiles.length,
@@ -1812,6 +1845,26 @@ const publishPost = asyncHandler(async (req, res) => {
                 delete postData[key];
             }
         });
+
+
+
+// ✅ FINAL DUPLICATE CHECK (Extra safety layer)
+const duplicateCheck = await Post.findOne({
+    $or: [
+        { postIdUnique: postData.postIdUnique },
+        { category: postData.category, inCategoryId: postData.inCategoryId }
+    ]
+}).lean();
+
+if (duplicateCheck) {
+    console.error('❌ Duplicate post detected:', {
+        postIdUnique: postData.postIdUnique,
+        inCategoryId: postData.inCategoryId,
+        existingPost: duplicateCheck._id
+    });
+    throw new ApiError(409, "Post ID conflict detected. Please try creating the post again.");
+}
+
 
         const post = await Post.create(postData);
 

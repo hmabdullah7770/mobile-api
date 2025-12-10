@@ -7,7 +7,8 @@
     "dev": "nodemon src/index.js",
     "start": "bun src/index.js",
     "migrate": "bun src/migrate/migrate-store_carousel-data.js",
-    "migrate-post-ids": "bun src/migrate/migrate-post-ids.js"
+    "migrate-post-ids": "bun src/migrate/migrate-post-ids.js",
+    "migrate:sync-counters": "bun src/migrate/syncPostCounters.js"
   },
   "devDependencies": {
     "@types/bun": "latest",

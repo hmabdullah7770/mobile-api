@@ -391,7 +391,17 @@ postSchema.index({ isPublished: 1, category: 1, createdAt: -1 });
 postSchema.index({ isPublished: 1, createdAt: -1 });
 
 // Add compound index: inCategoryId is unique within each category
-postSchema.index({ category: 1, inCategoryId: 1 }, { unique: true });
+// postSchema.index({ category: 1, inCategoryId: 1 }, { unique: true });
+
+// In post.model.js, replace the index with:
+postSchema.index(
+    { category: 1, inCategoryId: 1 }, 
+    { 
+        unique: true,
+        partialFilterExpression: { inCategoryId: { $exists: true, $ne: null } }
+    }
+);
+
 
 export const Post = mongoose.model("Post", postSchema);
 
